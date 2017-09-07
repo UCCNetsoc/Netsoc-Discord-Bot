@@ -12,10 +12,3 @@ type command struct {
 
 	Exec func(*discordgo.Session, *discordgo.MessageCreate, []string)
 }
-
-type helpBody struct {
-	User    string `json:"user"`
-	Email   string `json:"email"`
-	Subject string `json:"subject"`
-	Message string `json:"message"`
-}

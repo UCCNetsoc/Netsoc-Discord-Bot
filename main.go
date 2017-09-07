@@ -14,12 +14,11 @@ import (
 )
 
 var (
-	conf         *config
-	logF         *os.File
-	infoLog      *log.Logger
-	errorLog     *log.Logger
-	errEmptyFile = errors.New("file is empty")
-	dg           = &discordgo.Session{}
+	conf     *config
+	logF     *os.File
+	infoLog  *log.Logger
+	errorLog *log.Logger
+	dg       = &discordgo.Session{}
 )
 
 // config represetns the bot configuration loaded from the JSON
@@ -36,9 +35,17 @@ type config struct {
 	inDev bool `json:"indev"`
 }
 
+// helpBody represents the help message which is sent from netsoc-admin.
+type helpBody struct {
+	user    string `json:"user"`
+	email   string `json:"email"`
+	subject string `json:"subject"`
+	message string `json:"message"`
+}
+
 func main() {
 	if err := loadConfig(); err != nil {
-		errorLog.Fatalf("Failed to load configuration JSON: %s", err)
+		log.Fatalf("Failed to load configuration JSON: %s", err)
 	}
 
 	loadLog()
@@ -100,7 +107,7 @@ func help(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	dg.ChannelMessageSend("354748497683283979", fmt.Sprintf("```From: %s\nEmail: %s\n\nSubject: %s\n\n%s```", resp.User, resp.Email, resp.Subject, resp.Message))
+	dg.ChannelMessageSend("354748497683283979", fmt.Sprintf("```From: %s\nEmail: %s\n\nSubject: %s\n\n%s```", resp.user, resp.email, resp.subject, resp.message))
 }
 
 func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
