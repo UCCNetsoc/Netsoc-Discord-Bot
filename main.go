@@ -1,43 +1,60 @@
 package main
 
 import (
-	"strings"
-	"os"
-	"github.com/bwmarrin/discordgo"
-	"log"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
-	"errors"
-	"encoding/json"
+	"log"
 	"net/http"
+	"os"
+	"strings"
+
+	"github.com/bwmarrin/discordgo"
 )
 
 var (
-	conf = &config{}
-	logF *os.File
-	infoLog *log.Logger
-	errorLog *log.Logger
-	errEmptyFile = errors.New("file is empty")	
-	dg = &discordgo.Session{}
+	conf         *config
+	logF         *os.File
+	infoLog      *log.Logger
+	errorLog     *log.Logger
+	errEmptyFile = errors.New("file is empty")
+	dg           = &discordgo.Session{}
 )
 
+// config represetns the bot configuration loaded from the JSON
+// file "./config.json".
+type config struct {
+	// game is the Game to which this bit pertains.
+	game string `json:"game"`
+	// prefix is the string that will prefix all commands
+	// which this not will listen for.
+	prefix string `json:"prefix"`
+	// token is the Discord bot user token.
+	token string `json:"token"`
+	// inDev is true if we are in a developemnt environment.
+	inDev bool `json:"indev"`
+}
+
 func main() {
+	if err := loadConfig(); err != nil {
+		errorLog.Fatalf("Failed to load configuration JSON: %s", err)
+	}
+
 	loadLog()
 	defer logF.Close()
 
 	log.SetOutput(logF)
 
-	infoLog = log.New(logF, "INFO:  ", log.Ldate|log.Ltime)	
+	infoLog = log.New(logF, "INFO:  ", log.Ldate|log.Ltime)
 	errorLog = log.New(logF, "ERROR: ", log.Ldate|log.Ltime|log.Lshortfile)
-	if conf.InDev {
-		errorLog = log.New(os.Stdout, "ERROR: ", log.Ldate|log.Ltime|log.Lshortfile)		
+	if conf.inDev {
+		errorLog = log.New(os.Stdout, "ERROR: ", log.Ldate|log.Ltime|log.Lshortfile)
 	}
-
-	loadConfig()
 
 	var err error
 	// Create a new Discord session using the provided bot token.
-	dg, err = discordgo.New("Bot " + conf.Token)
+	dg, err = discordgo.New("Bot " + conf.token)
 	if err != nil {
 		errorLog.Println("Error creating Discord session,", err)
 		return
@@ -87,11 +104,11 @@ func help(w http.ResponseWriter, r *http.Request) {
 }
 
 func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
-	if m.Author.Bot || !strings.HasPrefix(m.Content, conf.Prefix) || strings.TrimPrefix(m.Content, conf.Prefix) == ""{
+	if m.Author.Bot || !strings.HasPrefix(m.Content, conf.prefix) || strings.TrimPrefix(m.Content, conf.prefix) == "" {
 		return
 	}
 
-	parseCommand(s, m, strings.TrimPrefix(m.Content, conf.Prefix))
+	parseCommand(s, m, strings.TrimPrefix(m.Content, conf.prefix))
 }
 
 func loadLog() *os.File {
@@ -105,31 +122,31 @@ func loadLog() *os.File {
 }
 
 func setInitialGame(s *discordgo.Session) {
-	err := s.UpdateStatus(0, conf.Game)
+	err := s.UpdateStatus(0, conf.game)
 	if err != nil {
 		errorLog.Println("Update status err:", err)
 		return
 	}
-	infoLog.Println("set initial game to ", conf.Game)
+	infoLog.Println("set initial game to ", conf.game)
 	return
 }
 
+// loadConfig loads teh configuration information found in ./config.json
 func loadConfig() error {
 	file, err := ioutil.ReadFile("config.json")
 	if err != nil {
 		errorLog.Println("Config open err", err)
-		return err
+		return fmt.Errorf("failed to read configuration file: ", err)
 	}
 
 	if len(file) < 1 {
 		infoLog.Println("config.json is empty")
-		return errEmptyFile
+		return errors.New("Configuration file 'config.json' was empty")
 	}
 
-	err = json.Unmarshal(file, conf)
-	if err != nil {
+	if err := json.Unmarshal(file, conf); err != nil {
 		errorLog.Println("Config unmarshal err", err)
-		return err
+		return fmt.Errorf("failed to unmarshal configuration JSON: %s", err)
 	}
 
 	return nil
