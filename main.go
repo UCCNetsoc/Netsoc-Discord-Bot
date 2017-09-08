@@ -18,7 +18,7 @@ import (
 var (
 	conf *config
 	l    *logging.Logger
-	dg   = &discordgo.Session{}
+	dg   *discordgo.Session
 )
 
 // config represetns the bot configuration loaded from the JSON
@@ -29,14 +29,17 @@ type config struct {
 	Prefix string `json:"prefix"`
 	// Token is the Discord bot user token.
 	Token string `json:"token"`
+	// HelpChannelId is the channel ID to which help messages from
+	// netsoc-admin will be sent.
+	HelpChannelId string `json:"helpChannelId"`
 }
 
 // helpBody represents the help message which is sent from netsoc-admin.
 type helpBody struct {
-	user    string `json:"user"`
-	email   string `json:"email"`
-	subject string `json:"subject"`
-	message string `json:"message"`
+	User    string `json:"user"`
+	Email   string `json:"email"`
+	Subject string `json:"subject"`
+	Message string `json:"message"`
 }
 
 func main() {
@@ -49,6 +52,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to create bot's logger: %s", err)
 	}
+	defer l.Close()
 
 	dg, err = discordgo.New("Bot " + conf.Token)
 	if err != nil {
@@ -70,28 +74,30 @@ func main() {
 }
 
 func help(w http.ResponseWriter, r *http.Request) {
-	resp := helpBody{}
+	resp := &helpBody{}
 
 	bytes, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		dg.ChannelMessageSend("354748497683283979", err.Error())
+		l.Errorf("Failed to read request body: %s", err)
+		dg.ChannelMessageSend(conf.HelpChannelId, "help request error, check logs")
 		return
 	}
 	r.Body.Close()
-
-	err = json.Unmarshal(bytes, &resp)
+	err = json.Unmarshal(bytes, resp)
 	if err != nil {
-		dg.ChannelMessageSend("354748497683283979", err.Error())
+		l.Errorf("Failed to unmarshal request JSON %q: %s", bytes, err)
+		dg.ChannelMessageSend(conf.HelpChannelId, "help request error, check logs")
 		return
 	}
-
-	dg.ChannelMessageSend("354748497683283979", fmt.Sprintf("```From: %s\nEmail: %s\n\nSubject: %s\n\n%s```", resp.user, resp.email, resp.subject, resp.message))
+	msg := fmt.Sprintf("```From: %s\nEmail: %s\n\nSubject: %s\n\n%s```", resp.User, resp.Email, resp.Subject, resp.Message)
+	dg.ChannelMessageSend(conf.HelpChannelId, msg)
 }
 
 // messageCreate is an event handler which is called whenever a new message
 // is created in the Discord server.
 func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
-	if m.Author.Bot || !strings.HasPrefix(m.Content, conf.Prefix) || strings.TrimPrefix(m.Content, conf.Prefix) == "" {
+	if m.Author.Bot || !strings.HasPrefix(m.Content, conf.Prefix) ||
+		strings.TrimPrefix(m.Content, conf.Prefix) == "" {
 		return
 	}
 	c := strings.TrimPrefix(m.Content, conf.Prefix)
