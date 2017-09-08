@@ -7,34 +7,28 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"os"
 	"strings"
 
 	"./commands"
+	"./logging"
 
 	"github.com/bwmarrin/discordgo"
 )
 
 var (
-	conf     *config
-	logF     *os.File
-	infoLog  *log.Logger
-	errorLog *log.Logger
-	dg       = &discordgo.Session{}
+	conf *config
+	l    *logging.Logger
+	dg   = &discordgo.Session{}
 )
 
 // config represetns the bot configuration loaded from the JSON
 // file "./config.json".
 type config struct {
-	// game is the Game to which this bit pertains.
-	game string `json:"game"`
-	// prefix is the string that will prefix all commands
+	// Prefix is the string that will prefix all commands
 	// which this not will listen for.
-	prefix string `json:"prefix"`
-	// token is the Discord bot user token.
-	token string `json:"token"`
-	// inDev is true if we are in a developemnt environment.
-	inDev bool `json:"indev"`
+	Prefix string `json:"prefix"`
+	// Token is the Discord bot user token.
+	Token string `json:"token"`
 }
 
 // helpBody represents the help message which is sent from netsoc-admin.
@@ -50,46 +44,29 @@ func main() {
 		log.Fatalf("Failed to load configuration JSON: %s", err)
 	}
 
-	loadLog()
-	defer logF.Close()
-
-	log.SetOutput(logF)
-
-	infoLog = log.New(logF, "INFO:  ", log.Ldate|log.Ltime)
-	errorLog = log.New(logF, "ERROR: ", log.Ldate|log.Ltime|log.Lshortfile)
-	if conf.inDev {
-		errorLog = log.New(os.Stdout, "ERROR: ", log.Ldate|log.Ltime|log.Lshortfile)
+	var err error
+	l, err = logging.New()
+	if err != nil {
+		log.Fatalf("Failed to create bot's logger: %s", err)
 	}
 
-	var err error
-	// Create a new Discord session using the provided bot token.
-	dg, err = discordgo.New("Bot " + conf.token)
+	dg, err = discordgo.New("Bot " + conf.Token)
 	if err != nil {
-		errorLog.Println("Error creating Discord session,", err)
+		l.Errorf("Failed to create Discord session: %s", err)
 		return
 	}
+	dg.AddHandler(messageCreate)
 
-	// Open a websocket connection to Discord and begin listening.
-	err = dg.Open()
-	if err != nil {
-		errorLog.Println("Error opening connection,", err)
+	if err := dg.Open(); err != nil {
+		l.Errorf("Failed to open websocket connection: %s", err)
 		return
 	}
 	defer dg.Close()
 
-	dg.AddHandler(messageCreate)
-
-	setInitialGame(dg)
-
-	fmt.Fprintln(logF, "")
-	infoLog.Println(`/*********BOT RESTARTED*********\`)
-
-	// Wait here until CTRL-C or other term signal is received.
-	fmt.Println("Bot is now running. Press CTRL-C to exit.")
-
 	http.HandleFunc("/help", help)
-
-	errorLog.Fatalln(http.ListenAndServe(":4201", nil))
+	if err := http.ListenAndServe(":4201", nil); err != nil {
+		l.Errorf("Failed to serve HTTP: %s", err)
+	}
 }
 
 func help(w http.ResponseWriter, r *http.Request) {
@@ -100,6 +77,7 @@ func help(w http.ResponseWriter, r *http.Request) {
 		dg.ChannelMessageSend("354748497683283979", err.Error())
 		return
 	}
+	r.Body.Close()
 
 	err = json.Unmarshal(bytes, &resp)
 	if err != nil {
@@ -113,66 +91,30 @@ func help(w http.ResponseWriter, r *http.Request) {
 // messageCreate is an event handler which is called whenever a new message
 // is created in the Discord server.
 func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
-	if m.Author.Bot || !strings.HasPrefix(m.Content, conf.prefix) || strings.TrimPrefix(m.Content, conf.prefix) == "" {
+	if m.Author.Bot || !strings.HasPrefix(m.Content, conf.Prefix) || strings.TrimPrefix(m.Content, conf.Prefix) == "" {
 		return
 	}
-	c := strings.TrimPrefix(m.Content, conf.prefix)
+	c := strings.TrimPrefix(m.Content, conf.Prefix)
 	if err := commands.Parse(s, m, c); err != nil {
-		errorLog.Printf("Failed to execute command %q: %s", c, err)
+		l.Errorf("Failed to execute command %q: %s", c, err)
 	}
-}
-
-func loadLog() *os.File {
-	var err error
-	logF, err = os.OpenFile("log.log", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(2)
-	}
-	return logF
-}
-
-func setInitialGame(s *discordgo.Session) {
-	err := s.UpdateStatus(0, conf.game)
-	if err != nil {
-		errorLog.Println("Update status err:", err)
-		return
-	}
-	infoLog.Println("set initial game to ", conf.game)
-	return
 }
 
 // loadConfig loads teh configuration information found in ./config.json
 func loadConfig() error {
 	file, err := ioutil.ReadFile("config.json")
 	if err != nil {
-		errorLog.Println("Config open err", err)
 		return fmt.Errorf("failed to read configuration file: ", err)
 	}
 
 	if len(file) < 1 {
-		infoLog.Println("config.json is empty")
 		return errors.New("Configuration file 'config.json' was empty")
 	}
 
+	conf = &config{}
 	if err := json.Unmarshal(file, conf); err != nil {
-		errorLog.Println("Config unmarshal err", err)
 		return fmt.Errorf("failed to unmarshal configuration JSON: %s", err)
 	}
 
 	return nil
-}
-
-func saveConfig() {
-	out, err := json.MarshalIndent(conf, "", "  ")
-	if err != nil {
-		errorLog.Println("Config marshall err:", err)
-		return
-	}
-
-	err = ioutil.WriteFile("config.json", out, 0600)
-	if err != nil {
-		errorLog.Println("Save config err:", err)
-	}
-	return
 }
