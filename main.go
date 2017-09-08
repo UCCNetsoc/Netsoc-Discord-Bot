@@ -10,6 +10,8 @@ import (
 	"os"
 	"strings"
 
+	"./commands"
+
 	"github.com/bwmarrin/discordgo"
 )
 
@@ -75,9 +77,7 @@ func main() {
 	}
 	defer dg.Close()
 
-	//Register handlers
 	dg.AddHandler(messageCreate)
-	//dg.AddHandler(membJoin)
 
 	setInitialGame(dg)
 
@@ -110,12 +110,16 @@ func help(w http.ResponseWriter, r *http.Request) {
 	dg.ChannelMessageSend("354748497683283979", fmt.Sprintf("```From: %s\nEmail: %s\n\nSubject: %s\n\n%s```", resp.user, resp.email, resp.subject, resp.message))
 }
 
+// messageCreate is an event handler which is called whenever a new message
+// is created in the Discord server.
 func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	if m.Author.Bot || !strings.HasPrefix(m.Content, conf.prefix) || strings.TrimPrefix(m.Content, conf.prefix) == "" {
 		return
 	}
-
-	parseCommand(s, m, strings.TrimPrefix(m.Content, conf.prefix))
+	c := strings.TrimPrefix(m.Content, conf.prefix)
+	if err := commands.Parse(s, m, c); err != nil {
+		errorLog.Printf("Failed to execute command %q: %s", c, err)
+	}
 }
 
 func loadLog() *os.File {
