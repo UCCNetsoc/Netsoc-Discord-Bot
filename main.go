@@ -54,6 +54,7 @@ func main() {
 	}
 	defer l.Close()
 
+	l.Infof("Starting bot..")
 	dg, err = discordgo.New("Bot " + conf.Token)
 	if err != nil {
 		l.Errorf("Failed to create Discord session: %s", err)
@@ -66,6 +67,12 @@ func main() {
 		return
 	}
 	defer dg.Close()
+
+	if err := dg.UpdateStatus(0, conf.Prefix+commands.HelpCommand); err != nil {
+		l.Errorf("Failed to set bot's status")
+		return
+	}
+	l.Infof("Bot succesfully started")
 
 	http.HandleFunc("/help", help)
 	if err := http.ListenAndServe(":4201", nil); err != nil {
@@ -101,6 +108,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		return
 	}
 	c := strings.TrimPrefix(m.Content, conf.Prefix)
+	l.Infof("Received command: %q", c)
 	if err := commands.Parse(s, m, c); err != nil {
 		l.Errorf("Failed to execute command %q: %s", c, err)
 	}
