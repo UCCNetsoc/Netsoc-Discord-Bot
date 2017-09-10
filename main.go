@@ -109,7 +109,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	}
 	c := strings.TrimPrefix(m.Content, conf.Prefix)
 	l.Infof("Received command: %q", c)
-	if err := commands.Execute(s, m, c); err != nil {
+	if err := commands.Parse(s, m, c); err != nil {
 		l.Errorf("Failed to execute command %q: %s", c, err)
 	}
 }

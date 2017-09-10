@@ -26,7 +26,7 @@ func New() (*Logger, error) {
 	}
 	return &Logger{
 		logFiles: []*os.File{infolf, errorlf},
-		infol:    log.New(infolf, "INFO:  ", log.Ldate|log.Ltime|log.Lshortfile),
+		infol:    log.New(infolf, "INFO:  ", log.Ldate|log.Ltime),
 		errorl:   log.New(errorlf, "ERROR: ", log.Ldate|log.Ltime|log.Lshortfile),
 	}, nil
 }
