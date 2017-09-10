@@ -13,12 +13,13 @@ specified help channel.
 
 ```json
 {
-    // The bot's discord token used for authentication
     "token": "hgjkhgkjh.oihojhkhk.iughjhgbjhvjv",
-    // The string which prefixes all commands
     "prefix": "!",
-    // The ID of the channel where help messages from netsocadmin
-    // will appear.
     "helpChannelId": "876868979834798273" 
 }
 ```
+
+Configuration Value | Purpose
+token | the authenticatio token used by the Discord bot
+prefix | the string that prefixes all commands
+helpChannelId | the channel ID to which help messages from Netsoc Admin will be sent
