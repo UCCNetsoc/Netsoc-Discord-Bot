@@ -1,9 +1,11 @@
 package commands
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
+	"../logging"
 	"github.com/bwmarrin/discordgo"
 )
 
@@ -18,19 +20,23 @@ const HelpCommand = "help"
 
 // command is a function which executes the given command and arguments on
 // the provided discord session.
-type command func(*discordgo.Session, *discordgo.MessageCreate, []string) error
+type command func(context.Context, *discordgo.Session, *discordgo.MessageCreate, []string) error
 
 // pingCommand is a casic command which will responsd "Pong!" to any ping.
-func pingCommand(s *discordgo.Session, m *discordgo.MessageCreate, _ []string) error {
+func pingCommand(ctx context.Context, s *discordgo.Session, m *discordgo.MessageCreate, _ []string) error {
+	l, ok := logging.FromContext(ctx)
 	s.ChannelMessageSend(m.ChannelID, "Pong!")
+	if ok {
+		l.Infof("Responding 'Pong!' to ping command")
+	}
 	return nil
 }
 
-// Parse parses a msg and executes the command, if it exists.
-func Parse(s *discordgo.Session, m *discordgo.MessageCreate, msg string) error {
+// Execute parses a msg and executes the command, if it exists.
+func Execute(ctx context.Context, s *discordgo.Session, m *discordgo.MessageCreate, msg string) error {
 	args := strings.Fields(msg)
 	if c, ok := commMap[args[0]]; ok {
-		if err := c(s, m, args); err != nil {
+		if err := c(ctx, s, m, args); err != nil {
 			return fmt.Errorf("failed to execute command: %s", err)
 		}
 		return nil

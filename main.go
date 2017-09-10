@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -109,7 +110,8 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	}
 	c := strings.TrimPrefix(m.Content, conf.Prefix)
 	l.Infof("Received command: %q", c)
-	if err := commands.Parse(s, m, c); err != nil {
+	ctx := logging.NewContext(context.Background(), l)
+	if err := commands.Execute(ctx, s, m, c); err != nil {
 		l.Errorf("Failed to execute command %q: %s", c, err)
 	}
 }
