@@ -12,6 +12,10 @@ var commMap = map[string]command{
 	"ping": pingCommand,
 }
 
+// HelpCommand is the name of the command which lists the commands available
+// and can give information about a specific command.
+const HelpCommand = "help"
+
 // command is a function which executes the given command and arguments on
 // the provided discord session.
 type command func(*discordgo.Session, *discordgo.MessageCreate, []string) error

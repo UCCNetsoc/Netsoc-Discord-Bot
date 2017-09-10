@@ -1,6 +1,7 @@
 package logging
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
@@ -12,6 +13,15 @@ type Logger struct {
 	logFiles      []*os.File
 	infol, errorl *log.Logger
 }
+
+// conextKey is the type for the key for which loggers will be associated with
+// within a context. It is unexported to prevent collisions with other
+// context keys.
+type conextKey int
+
+// loggerContextKey is the key-value to which loggers will be associated with
+// within a context.
+const loggerContextKey conextKey = 0
 
 // New creates a new logger which logs to the given log file.
 // Note: you must defer a call to the logger's "Close" method.
@@ -26,7 +36,7 @@ func New() (*Logger, error) {
 	}
 	return &Logger{
 		logFiles: []*os.File{infolf, errorlf},
-		infol:    log.New(infolf, "INFO:  ", log.Ldate|log.Ltime),
+		infol:    log.New(infolf, "INFO:  ", log.Ldate|log.Ltime|log.Lshortfile),
 		errorl:   log.New(errorlf, "ERROR: ", log.Ldate|log.Ltime|log.Lshortfile),
 	}, nil
 }
@@ -55,4 +65,17 @@ func (l *Logger) Close() {
 	for _, lf := range l.logFiles {
 		lf.Close()
 	}
+}
+
+// FromContext will return a Logger which is associated with the given context.
+// If there is no logger within the context, then nil is returned and ok is false.
+func FromContext(ctx context.Context) (*Logger, bool) {
+	l, ok := ctx.Value(loggerContextKey).(*Logger)
+	return l, ok
+}
+
+// NewContext associates the given logger with the given context and returns the
+// new child context.
+func NewContext(ctx context.Context, l *Logger) context.Context {
+	return context.WithValue(ctx, loggerContextKey, l)
 }
