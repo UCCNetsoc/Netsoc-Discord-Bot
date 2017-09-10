@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -12,22 +13,31 @@ var commMap = map[string]command{
 	"ping": pingCommand,
 }
 
-// command is a function which executes the given command and arguments on
-// the provided discord session.
-type command func(*discordgo.Session, *discordgo.MessageCreate, []string) error
+// HelpCommand is the name of the command which explains what commands are
+// available from the bot as well as giving help on individual commands.
+const HelpCommand = "help"
 
-// pingCommand is a casic command which will responsd "Pong!" to any ping.
-func pingCommand(s *discordgo.Session, m *discordgo.MessageCreate, _ []string) error {
+// command holds the information that makes up a command
+type command struct {
+	// help is a string which explains the purpose and usage of the command
+	help string
+	// exec is a function which executes the command message on the given
+	// discord session.
+	exec func(context.Context, *discordgo.Session, *discordgo.MessageCreate, []string) error
+}
+
+// pingCommand is a basic command which will responsd "Pong!" to any ping.
+func pingCommand(ctx context.Context, s *discordgo.Session, m *discordgo.MessageCreate, _ []string) error {
 	s.ChannelMessageSend(m.ChannelID, "Pong!")
 	return nil
 }
 
-// Parse parses a msg and executes the command, if it exists.
-func Parse(s *discordgo.Session, m *discordgo.MessageCreate, msg string) error {
+// Execute parses a msg and executes the command, if it exists.
+func Execute(s *discordgo.Session, m *discordgo.MessageCreate, msg string) error {
 	args := strings.Fields(msg)
 	if c, ok := commMap[args[0]]; ok {
 		if err := c(s, m, args); err != nil {
-			return fmt.Errorf("failed to execute command: %s", err)
+			return fmt.Errorf("failed to execute command %q: %s", args[0], err)
 		}
 		return nil
 	}
