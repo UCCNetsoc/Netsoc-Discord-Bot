@@ -19,8 +19,8 @@ specified help channel.
 }
 ```
 
-Configuration Value | Purpose
---- | --- | ---
-`"token"` | the authenticatio token used by the Discord bot
-`"prefix"` | the string that prefixes all commands
-`"helpChannelId"` | the channel ID to which help messages from Netsoc Admin will be sent
+Config Value | Purpose
+--- | --- 
+`"token"` | The authentication token used by the Discord bot
+`"prefix"` | The string that prefixes all commands
+`"helpChannelId"` | The channel ID to which help messages from Netsoc Admin will be sent
