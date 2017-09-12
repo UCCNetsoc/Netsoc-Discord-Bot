@@ -33,6 +33,10 @@ type config struct {
 	// HelpChannelId is the channel ID to which help messages from
 	// netsoc-admin will be sent.
 	HelpChannelId string `json:"helpChannelId"`
+	// BotHostName is the address which the bot can be reached at
+	// over the internet. This is used by netsocadmin to reach the
+	// '/help' endpoint.
+	BotHostName string `json: "botHostName"`
 }
 
 // helpBody represents the help message which is sent from netsoc-admin.
@@ -76,7 +80,7 @@ func main() {
 	l.Infof("Bot succesfully started")
 
 	http.HandleFunc("/help", help)
-	if err := http.ListenAndServe(":4201", nil); err != nil {
+	if err := http.ListenAndServe(conf.BotHostName, nil); err != nil {
 		l.Errorf("Failed to serve HTTP: %s", err)
 	}
 }
