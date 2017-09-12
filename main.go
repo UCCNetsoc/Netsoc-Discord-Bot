@@ -37,6 +37,10 @@ type config struct {
 	// over the internet. This is used by netsocadmin to reach the
 	// '/help' endpoint.
 	BotHostName string `json: "botHostName"`
+	// SysAdminTag is the tag which, when included in a disocrd message,
+	// will result in a notification being sent to all SysAdmins so they
+	// can be notified of the help message.
+	SysAdminTag string `json: "sysAdminTag"`
 }
 
 // helpBody represents the help message which is sent from netsoc-admin.
@@ -101,7 +105,7 @@ func help(w http.ResponseWriter, r *http.Request) {
 		dg.ChannelMessageSend(conf.HelpChannelId, "help request error, check logs")
 		return
 	}
-	msg := fmt.Sprintf("```From: %s\nEmail: %s\n\nSubject: %s\n\n%s```", resp.User, resp.Email, resp.Subject, resp.Message)
+	msg := fmt.Sprintf("```%s elp pls\n\nFrom: %s\nEmail: %s\n\nSubject: %s\n\n%s```", conf.SysAdminTag, resp.User, resp.Email, resp.Subject, resp.Message)
 	dg.ChannelMessageSend(conf.HelpChannelId, msg)
 }
 
