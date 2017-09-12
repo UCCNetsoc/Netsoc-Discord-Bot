@@ -105,7 +105,7 @@ func help(w http.ResponseWriter, r *http.Request) {
 		dg.ChannelMessageSend(conf.HelpChannelId, "help request error, check logs")
 		return
 	}
-	msg := fmt.Sprintf("```%s elp pls\n\nFrom: %s\nEmail: %s\n\nSubject: %s\n\n%s```", conf.SysAdminTag, resp.User, resp.Email, resp.Subject, resp.Message)
+	msg := fmt.Sprintf("%s elp pls\n\n```From: %s\nEmail: %s\n\nSubject: %s\n\n%s```", conf.SysAdminTag, resp.User, resp.Email, resp.Subject, resp.Message)
 	dg.ChannelMessageSend(conf.HelpChannelId, msg)
 }
 
