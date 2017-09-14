@@ -81,7 +81,7 @@ func main() {
 		l.Errorf("Failed to set bot's status")
 		return
 	}
-	l.Infof("Bot succesfully started")
+	l.Infof("Bot successfully started")
 
 	http.HandleFunc("/help", help)
 	if err := http.ListenAndServe(conf.BotHostName, nil); err != nil {
@@ -117,14 +117,14 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		return
 	}
 	c := strings.TrimPrefix(m.Content, conf.Prefix)
-	l.Infof("Received command: %q", c)
+	l.Infof("Received command %q from %q", c, m.Author)
 	ctx := logging.NewContext(context.Background(), l)
 	if err := commands.Execute(ctx, s, m, c); err != nil {
 		l.Errorf("Failed to execute command %q: %s", c, err)
 	}
 }
 
-// loadConfig loads teh configuration information found in ./config.json
+// loadConfig loads the configuration information found in ./config.json
 func loadConfig() error {
 	file, err := ioutil.ReadFile("config.json")
 	if err != nil {
