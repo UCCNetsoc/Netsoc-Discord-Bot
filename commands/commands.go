@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"../logging"
+	"github.com/UCCNetworkingSociety/Netsoc-Discord-Bot/logging"
 	"github.com/bwmarrin/discordgo"
 )
 

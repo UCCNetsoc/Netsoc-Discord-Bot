@@ -10,8 +10,8 @@ import (
 	"net/http"
 	"strings"
 
-	"./commands"
-	"./logging"
+	"github.com/UCCNetworkingSociety/Netsoc-Discord-Bot/commands"
+	"github.com/UCCNetworkingSociety/Netsoc-Discord-Bot/logging"
 
 	"github.com/bwmarrin/discordgo"
 )
