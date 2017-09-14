@@ -1,4 +1,4 @@
-# Netsoc Discord Bot
+# Netsoc Discord Bot [![Build Status](https://travis-ci.org/UCCNetworkingSociety/Netsoc-Discord-Bot.svg)](https://travis-ci.org/TheJokersThief/go-twitter)
 
 ## Netsoc Admin Integration
 
@@ -19,8 +19,8 @@ specified help channel.
 }
 ```
 
-Config Value | Purpose
---- | --- 
-`"token"` | The authentication token used by the Discord bot
-`"prefix"` | The string that prefixes all commands
-`"helpChannelId"` | The channel ID to which help messages from Netsoc Admin will be sent
+| Config Value      | Purpose                                  |
+| ----------------- | ---------------------------------------- |
+| `"token"`         | The authentication token used by the Discord bot |
+| `"prefix"`        | The string that prefixes all commands    |
+| `"helpChannelID"` | The channel ID to which help messages from Netsoc Admin will be sent |
