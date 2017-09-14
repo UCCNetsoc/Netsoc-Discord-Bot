@@ -10,8 +10,8 @@ import (
 	"net/http"
 	"strings"
 
-	"./commands"
-	"./logging"
+	"github.com/UCCNetworkingSociety/Netsoc-Discord-Bot/commands"
+	"github.com/UCCNetworkingSociety/Netsoc-Discord-Bot/logging"
 
 	"github.com/bwmarrin/discordgo"
 )
@@ -30,17 +30,17 @@ type config struct {
 	Prefix string `json:"prefix"`
 	// Token is the Discord bot user token.
 	Token string `json:"token"`
-	// HelpChannelId is the channel ID to which help messages from
+	// HelpChannelID is the channel ID to which help messages from
 	// netsoc-admin will be sent.
-	HelpChannelId string `json:"helpChannelId"`
+	HelpChannelID string `json:"helpChannelID"`
 	// BotHostName is the address which the bot can be reached at
 	// over the internet. This is used by netsocadmin to reach the
 	// '/help' endpoint.
-	BotHostName string `json: "botHostName"`
+	BotHostName string `json:"botHostName"`
 	// SysAdminTag is the tag which, when included in a disocrd message,
 	// will result in a notification being sent to all SysAdmins so they
 	// can be notified of the help message.
-	SysAdminTag string `json: "sysAdminTag"`
+	SysAdminTag string `json:"sysAdminTag"`
 }
 
 // helpBody represents the help message which is sent from netsoc-admin.
@@ -95,18 +95,18 @@ func help(w http.ResponseWriter, r *http.Request) {
 	bytes, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		l.Errorf("Failed to read request body: %s", err)
-		dg.ChannelMessageSend(conf.HelpChannelId, "help request error, check logs")
+		dg.ChannelMessageSend(conf.HelpChannelID, "help request error, check logs")
 		return
 	}
 	r.Body.Close()
 	err = json.Unmarshal(bytes, resp)
 	if err != nil {
 		l.Errorf("Failed to unmarshal request JSON %q: %s", bytes, err)
-		dg.ChannelMessageSend(conf.HelpChannelId, "help request error, check logs")
+		dg.ChannelMessageSend(conf.HelpChannelID, "help request error, check logs")
 		return
 	}
 	msg := fmt.Sprintf("%s elp pls\n\n```From: %s\nEmail: %s\n\nSubject: %s\n\n%s```", conf.SysAdminTag, resp.User, resp.Email, resp.Subject, resp.Message)
-	dg.ChannelMessageSend(conf.HelpChannelId, msg)
+	dg.ChannelMessageSend(conf.HelpChannelID, msg)
 }
 
 // messageCreate is an event handler which is called whenever a new message
@@ -128,7 +128,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 func loadConfig() error {
 	file, err := ioutil.ReadFile("config.json")
 	if err != nil {
-		return fmt.Errorf("failed to read configuration file: ", err)
+		return fmt.Errorf("failed to read configuration file: %v", err)
 	}
 
 	if len(file) < 1 {
