@@ -1,4 +1,4 @@
-# Netsoc Discord Bot [![Build Status](https://travis-ci.org/UCCNetworkingSociety/Netsoc-Discord-Bot.svg)](https://travis-ci.org/TheJokersThief/go-twitter)
+# Netsoc Discord Bot [![Build Status](https://travis-ci.org/UCCNetworkingSociety/Netsoc-Discord-Bot.svg)](https://travis-ci.org/UCCNetworkingSociety/Netsoc-Discord-Bot)
 
 ## Netsoc Admin Integration
 
