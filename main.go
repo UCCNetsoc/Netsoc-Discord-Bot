@@ -9,10 +9,16 @@ import (
 	"net/http"
 	"strings"
 
+	
 	"github.com/UCCNetworkingSociety/Netsoc-Discord-Bot/commands"
 	"github.com/UCCNetworkingSociety/Netsoc-Discord-Bot/config"
 	"github.com/UCCNetworkingSociety/Netsoc-Discord-Bot/logging"
+	
 
+/* 	"./commands"
+	"./config"
+	"./logging"
+ */
 	"github.com/bwmarrin/discordgo"
 )
 
@@ -49,6 +55,7 @@ func main() {
 		l.Errorf("Failed to create Discord session: %s", err)
 		return
 	}
+
 	dg.AddHandler(messageCreate)
 
 	if err := dg.Open(); err != nil {
@@ -78,13 +85,15 @@ func help(w http.ResponseWriter, r *http.Request) {
 		dg.ChannelMessageSend(conf.HelpChannelID, "help request error, check logs")
 		return
 	}
-	r.Body.Close()
+	defer r.Body.Close()
+
 	err = json.Unmarshal(bytes, resp)
 	if err != nil {
 		l.Errorf("Failed to unmarshal request JSON %q: %s", bytes, err)
 		dg.ChannelMessageSend(conf.HelpChannelID, "help request error, check logs")
 		return
 	}
+	
 	msg := fmt.Sprintf("%s Help pls\n\n```From: %s\nEmail: %s\n\nSubject: %s\n\n%s```", conf.SysAdminTag, resp.User, resp.Email, resp.Subject, resp.Message)
 	dg.ChannelMessageSend(conf.HelpChannelID, msg)
 }
@@ -92,13 +101,16 @@ func help(w http.ResponseWriter, r *http.Request) {
 // messageCreate is an event handler which is called whenever a new message
 // is created in the Discord server.
 func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
-	if m.Author.Bot || !strings.HasPrefix(m.Content, conf.Prefix) ||
-		strings.TrimPrefix(m.Content, conf.Prefix) == "" {
+	if m.Author.Bot || !strings.HasPrefix(m.Content, conf.Prefix) || strings.TrimPrefix(m.Content, conf.Prefix) == "" {
 		return
 	}
+
 	c := strings.TrimPrefix(m.Content, conf.Prefix)
+
 	l.Infof("Received command %q from %q", c, m.Author)
+
 	ctx := logging.NewContext(context.Background(), l)
+
 	if err := commands.Execute(ctx, s, m, c); err != nil {
 		l.Errorf("Failed to execute command %q: %s", c, err)
 	}

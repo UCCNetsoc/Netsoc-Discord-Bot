@@ -26,6 +26,7 @@ const HelpCommand = "help"
 // command is a function which executes the given command and arguments on
 // the provided discord session.
 type command struct {
+	name string
 	help string
 	exec func(context.Context, *discordgo.Session, *discordgo.MessageCreate, []string) error
 }
@@ -49,15 +50,22 @@ func init() {
 	// to ensure an alias doesn't overwrite their
 	// functionality
 	commMap["ping"] = &command{
+		name: "ping",
 		help: "Responds 'Pong!' to and 'ping'.",
 		exec: pingCommand,
 	}
 
 	commMap["alias"] = &command{
+		name: "alias",
 		help: "Sets a shortcut command. Usage: !alias keyword url_link_to_resource",
 		exec: aliasCommand,
 	}
 
+	commMap[HelpCommand] = &command{
+		name: HelpCommand,
+		help: "If followed by a command name, it shows the details of the command",
+		exec: showHelpCommand,
+	}
 }
 
 // pingCommand is a basic command which will responds "Pong!" to any ping.
@@ -83,73 +91,92 @@ func aliasCommand(ctx context.Context, s *discordgo.Session, m *discordgo.Messag
 	}
 
 	// Ensure user has permission to use this command
-	isAllowed := IsAllowed(ctx, s, m.Author.ID, "alias")
-
-	if isAllowed {
-		if _, ok := commMap[c[1]]; (ok && GetFunctionName(printShortcut) != GetFunctionName(commMap[c[1]].exec)) || c[1] == HelpCommand {
-			// If key already exists and who's function is not printShortcut OR is not the "help" command
-			s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("%s is a registered command and cannot be set as an alias.", c[1]))
-			if loggerOk {
-				l.Infof("%s attempted to overwrite command %s with %s", m.Author, c[1], c[2])
-			}
-		} else {
-			// If key does not exist (or who's function is printShortcut)
-			commMap[c[1]] = &command{
-				help: c[2],
-				exec: printShortcut,
-			}
-
-			savedAliases[c[1]] = c[2]
-			WriteToStorage("./storage/aliases.json", savedAliases)
-
-			if loggerOk {
-				l.Infof("%s has set an alias for %s => %s", m.Author, c[1], c[2])
-			}
-
-			s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("%s has set an alias for %s => %s", m.Author, c[1], c[2]))
-		}
-	} else {
+	if !IsAllowed(ctx, s, m.Author.ID, "alias") {
 		s.ChannelMessageSend(m.ChannelID, "You do not have permissions to use this command.")
 		if loggerOk {
 			l.Infof("%q is not allowed to execute the alias command", m.Author)
 		}
+		return nil
 	}
+	
+	if _, ok := commMap[c[1]]; (ok && GetFunctionName(printShortcut) != GetFunctionName(commMap[c[1]].exec)) {
+		// If key already exists and who's function is not printShortcut OR is not the "help" command
+		s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("%s is a registered command and cannot be set as an alias.", c[1]))
+		if loggerOk {
+			l.Infof("%s attempted to overwrite command %s with %s", m.Author, c[1], c[2])
+		}
+		return nil
+	}
+
+	// If key does not exist (or who's function is printShortcut)
+	commMap[c[1]] = &command{
+		help: c[2],
+		exec: printShortcut,
+	}
+	
+	savedAliases[c[1]] = c[2]
+	if err := WriteToStorage("./storage/aliases.json", savedAliases); err != nil {
+		l.Errorf("Error writing alias to file")
+		s.ChannelMessageSend(m.ChannelID, "Error writing alias to file.")
+		return err
+	}
+
+	if loggerOk {
+		l.Infof("%s has set an alias for %s => %s", m.Author, c[1], c[2])
+	}
+
+	s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("%s has set an alias for %s => %s", m.Author, c[1], c[2]))
 
 	return nil
 }
 
 // showHelpCommand lists all of the commands available and explains what they do.
-func showHelpCommand(ctx context.Context, s *discordgo.Session, m *discordgo.MessageCreate, _ []string) error {
+func showHelpCommand(ctx context.Context, s *discordgo.Session, m *discordgo.MessageCreate, msg []string) error {
 	if l, ok := logging.FromContext(ctx); ok {
 		l.Infof("Responding to help command")
 	}
-	var out string
-	for name, c := range commMap {
-		out += fmt.Sprintf("%s: %s\n", name, c.help)
-	}
-	s.ChannelMessageSend(m.ChannelID, out)
-	return nil
-}
+	
+	if len(msg) == 2 {
+		if c, ok := commMap[msg[1]]; ok {
+			s.ChannelMessageSendEmbed(m.ChannelID, &discordgo.MessageEmbed{
+				Color: 0,
 
-// isHelpCommand tells you whether the given message arguments are calling the help command.
-func isHelpCommand(msgArgs []string) bool {
-	if len(msgArgs) < 1 {
-		return false
+				Fields: []*discordgo.MessageEmbedField{
+					{Name: c.name, Value: c.help},
+				},
+			})
+			return nil
+		}
+
+		s.ChannelMessageSend(m.ChannelID, "Command not found.")
+		return nil
 	}
-	return msgArgs[0] == HelpCommand
+
+	s.ChannelMessageSendEmbed(m.ChannelID, &discordgo.MessageEmbed{
+		Color: 0,
+
+		Fields: func() []*discordgo.MessageEmbedField {
+			var out []*discordgo.MessageEmbedField
+
+			for name, c := range commMap {
+				out = append(out, &discordgo.MessageEmbedField{
+					Name: name,
+					Value: c.help,
+				})
+			}
+
+			return out
+		}(),
+	})
+	return nil
 }
 
 // Execute parses a msg and executes the command, if it exists.
 func Execute(ctx context.Context, s *discordgo.Session, m *discordgo.MessageCreate, msg string) error {
 	args := strings.Fields(msg)
+
 	// the help command is a special case because the help command must loop though
 	// the map of all other commands.
-	if isHelpCommand(args) {
-		if err := showHelpCommand(ctx, s, m, args); err != nil {
-			return fmt.Errorf("failed to execute help command: %s", err)
-		}
-		return nil
-	}
 	if c, ok := commMap[args[0]]; ok {
 		if err := c.exec(ctx, s, m, args); err != nil {
 			return fmt.Errorf("failed to execute command: %s", err)
