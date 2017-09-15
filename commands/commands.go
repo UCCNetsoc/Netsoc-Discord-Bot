@@ -1,13 +1,13 @@
 package commands
 
 import (
-	"os/exec"
 	"context"
 	"fmt"
+	"os/exec"
 	"reflect"
 	"runtime"
-	"strings"
 	"strconv"
+	"strings"
 
 	"github.com/UCCNetworkingSociety/Netsoc-Discord-Bot/logging"
 	"github.com/bwmarrin/discordgo"
@@ -91,15 +91,15 @@ func init() {
 func infoCommand(ctx context.Context, s *discordgo.Session, m *discordgo.MessageCreate, _ []string) error {
 	var mem runtime.MemStats
 	runtime.ReadMemStats(&mem)
-	
+
 	s.ChannelMessageSendEmbed(m.ChannelID, &discordgo.MessageEmbed{
 		Color: 0,
 
 		Fields: []*discordgo.MessageEmbedField{
-			{Name: "Memory Usage:", Value: "```"+strconv.Itoa(int(mem.Alloc/1024/1024)) + "MB"+"```", Inline: true},
-			{Name: "Goroutines:", Value: "```"+strconv.Itoa(runtime.NumGoroutine())+"```", Inline: true},
-			{Name: "Go Version:", Value: "```"+runtime.Version()+"```", Inline: true},
-			{Name: "Usable Cores:", Value: "```"+strconv.Itoa(runtime.NumCPU())+"```", Inline: true},			
+			{Name: "Memory Usage:", Value: "```" + strconv.Itoa(int(mem.Alloc/1024/1024)) + "MB" + "```", Inline: true},
+			{Name: "Goroutines:", Value: "```" + strconv.Itoa(runtime.NumGoroutine()) + "```", Inline: true},
+			{Name: "Go Version:", Value: "```" + runtime.Version() + "```", Inline: true},
+			{Name: "Usable Cores:", Value: "```" + strconv.Itoa(runtime.NumCPU()) + "```", Inline: true},
 		},
 	})
 
@@ -141,7 +141,7 @@ func topCommand(ctx context.Context, s *discordgo.Session, m *discordgo.MessageC
 
 	return nil
 }
-	
+
 // pingCommand is a basic command which will responds "Pong!" to any ping.
 func pingCommand(ctx context.Context, s *discordgo.Session, m *discordgo.MessageCreate, _ []string) error {
 	l, ok := logging.FromContext(ctx)
