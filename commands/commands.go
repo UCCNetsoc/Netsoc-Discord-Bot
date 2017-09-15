@@ -98,8 +98,8 @@ func aliasCommand(ctx context.Context, s *discordgo.Session, m *discordgo.Messag
 		}
 		return nil
 	}
-	
-	if _, ok := commMap[c[1]]; (ok && GetFunctionName(printShortcut) != GetFunctionName(commMap[c[1]].exec)) {
+
+	if _, ok := commMap[c[1]]; ok && GetFunctionName(printShortcut) != GetFunctionName(commMap[c[1]].exec) {
 		// If key already exists and who's function is not printShortcut OR is not the "help" command
 		s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("%s is a registered command and cannot be set as an alias.", c[1]))
 		if loggerOk {
@@ -113,7 +113,7 @@ func aliasCommand(ctx context.Context, s *discordgo.Session, m *discordgo.Messag
 		help: c[2],
 		exec: printShortcut,
 	}
-	
+
 	savedAliases[c[1]] = c[2]
 	if err := WriteToStorage("./storage/aliases.json", savedAliases); err != nil {
 		l.Errorf("Error writing alias to file")
@@ -135,7 +135,7 @@ func showHelpCommand(ctx context.Context, s *discordgo.Session, m *discordgo.Mes
 	if l, ok := logging.FromContext(ctx); ok {
 		l.Infof("Responding to help command")
 	}
-	
+
 	if len(msg) == 2 {
 		if c, ok := commMap[msg[1]]; ok {
 			s.ChannelMessageSendEmbed(m.ChannelID, &discordgo.MessageEmbed{
@@ -160,7 +160,7 @@ func showHelpCommand(ctx context.Context, s *discordgo.Session, m *discordgo.Mes
 
 			for name, c := range commMap {
 				out = append(out, &discordgo.MessageEmbedField{
-					Name: name,
+					Name:  name,
 					Value: c.help,
 				})
 			}
