@@ -13,9 +13,18 @@ specified help channel.
 
 ```json
 {
-    "token": "hgjkhgkjh.oihojhkhk.iughjhgbjhvjv",
-    "prefix": "!",
-    "helpChannelId": "876868979834798273" 
+    "token": "AAABBBccccc1111",
+	"prefix": "!",
+	"helpChannelId": "357195183999287296", 
+	"sysAdminTag": "<@&318907623476822016>",
+	"botHostName": "0.0.0.0:4201",
+	"guildID": "291573897730588684",
+	"permissions": {
+		"set" : [
+			"SysAdmin",
+			"HLM"
+		]
+	}
 }
 ```
 

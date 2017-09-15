@@ -3,19 +3,21 @@ package commands
 import (
 	"context"
 	"fmt"
+	"reflect"
+	"runtime"
 	"strings"
 
 	"github.com/UCCNetworkingSociety/Netsoc-Discord-Bot/logging"
 	"github.com/bwmarrin/discordgo"
 )
 
-// commMap maps the name of a command to the function which executes the command
-var commMap = map[string]*command{
-	"ping": &command{
-		help: "Responds 'Pong!' to and 'ping'",
-		exec: pingCommand,
-	},
-}
+var (
+	// commMap maps the name of a command to the function which executes the command
+	commMap map[string]*command
+
+	// savedAliases stores all shortcut alias commands
+	savedAliases = map[string]string{}
+)
 
 // HelpCommand is the name of the command which lists the commands available
 // and can give information about a specific command.
@@ -28,6 +30,36 @@ type command struct {
 	exec func(context.Context, *discordgo.Session, *discordgo.MessageCreate, []string) error
 }
 
+func init() {
+	commMap = map[string]*command{}
+
+	err := LoadFromStorage("./storage/aliases.json", &savedAliases)
+	if err != nil {
+		panic(err)
+	}
+
+	for key, value := range savedAliases {
+		commMap[key] = &command{
+			help: value,
+			exec: printShortcut,
+		}
+	}
+
+	// Put registered commands after alias registration
+	// to ensure an alias doesn't overwrite their
+	// functionality
+	commMap["ping"] = &command{
+		help: "Responds 'Pong!' to and 'ping'.",
+		exec: pingCommand,
+	}
+
+	commMap["alias"] = &command{
+		help: "Sets a shortcut command. Usage: !alias keyword url_link_to_resource",
+		exec: aliasCommand,
+	}
+
+}
+
 // pingCommand is a basic command which will responds "Pong!" to any ping.
 func pingCommand(ctx context.Context, s *discordgo.Session, m *discordgo.MessageCreate, _ []string) error {
 	l, ok := logging.FromContext(ctx)
@@ -35,6 +67,54 @@ func pingCommand(ctx context.Context, s *discordgo.Session, m *discordgo.Message
 	if ok {
 		l.Infof("Responding 'Pong!' to ping command")
 	}
+	return nil
+}
+
+// aliasCommand sets string => string shortcut that can be called later to print a value
+func aliasCommand(ctx context.Context, s *discordgo.Session, m *discordgo.MessageCreate, c []string) error {
+	l, loggerOk := logging.FromContext(ctx)
+
+	if len(c) < 3 {
+		s.ChannelMessageSend(m.ChannelID, "Too few arguments supplied. Refer to !help for usage.")
+		return fmt.Errorf("Too few arguments supplied for set command")
+	} else if len(c) > 3 {
+		s.ChannelMessageSend(m.ChannelID, "Too many arguments supplied. Refer to !help for usage.")
+		return fmt.Errorf("Too many arguments supplied for set command")
+	}
+
+	// Ensure user has permission to use this command
+	isAllowed := IsAllowed(ctx, s, m.Author.ID, "alias")
+
+	if isAllowed {
+		if _, ok := commMap[c[1]]; (ok && GetFunctionName(printShortcut) != GetFunctionName(commMap[c[1]].exec)) || c[1] == HelpCommand {
+			// If key already exists and who's function is not printShortcut OR is not the "help" command
+			s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("%s is a registered command and cannot be set as an alias.", c[1]))
+			if loggerOk {
+				l.Infof("%s attempted to overwrite command %s with %s", m.Author, c[1], c[2])
+			}
+		} else {
+			// If key does not exist (or who's function is printShortcut)
+			commMap[c[1]] = &command{
+				help: c[2],
+				exec: printShortcut,
+			}
+
+			savedAliases[c[1]] = c[2]
+			WriteToStorage("./storage/aliases.json", savedAliases)
+
+			if loggerOk {
+				l.Infof("%s has set an alias for %s => %s", m.Author, c[1], c[2])
+			}
+
+			s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("%s has set an alias for %s => %s", m.Author, c[1], c[2]))
+		}
+	} else {
+		s.ChannelMessageSend(m.ChannelID, "You do not have permissions to use this command.")
+		if loggerOk {
+			l.Infof("%q is not allowed to execute the alias command", m.Author)
+		}
+	}
+
 	return nil
 }
 
@@ -77,4 +157,15 @@ func Execute(ctx context.Context, s *discordgo.Session, m *discordgo.MessageCrea
 		return nil
 	}
 	return fmt.Errorf("Failed to recognise the command %q", args[0])
+}
+
+// printShortcut uses the help text of the command to print the shortcut's value
+func printShortcut(ctx context.Context, s *discordgo.Session, m *discordgo.MessageCreate, args []string) error {
+	s.ChannelMessageSend(m.ChannelID, commMap[args[0]].help)
+	return nil
+}
+
+// GetFunctionName returns the name of a given function
+func GetFunctionName(i interface{}) string {
+	return runtime.FuncForPC(reflect.ValueOf(i).Pointer()).Name()
 }

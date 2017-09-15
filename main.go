@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -11,37 +10,17 @@ import (
 	"strings"
 
 	"github.com/UCCNetworkingSociety/Netsoc-Discord-Bot/commands"
+	"github.com/UCCNetworkingSociety/Netsoc-Discord-Bot/config"
 	"github.com/UCCNetworkingSociety/Netsoc-Discord-Bot/logging"
 
 	"github.com/bwmarrin/discordgo"
 )
 
 var (
-	conf *config
+	conf *config.Config
 	l    *logging.Logger
 	dg   *discordgo.Session
 )
-
-// config represetns the bot configuration loaded from the JSON
-// file "./config.json".
-type config struct {
-	// Prefix is the string that will prefix all commands
-	// which this not will listen for.
-	Prefix string `json:"prefix"`
-	// Token is the Discord bot user token.
-	Token string `json:"token"`
-	// HelpChannelID is the channel ID to which help messages from
-	// netsoc-admin will be sent.
-	HelpChannelID string `json:"helpChannelID"`
-	// BotHostName is the address which the bot can be reached at
-	// over the internet. This is used by netsocadmin to reach the
-	// '/help' endpoint.
-	BotHostName string `json:"botHostName"`
-	// SysAdminTag is the tag which, when included in a disocrd message,
-	// will result in a notification being sent to all SysAdmins so they
-	// can be notified of the help message.
-	SysAdminTag string `json:"sysAdminTag"`
-}
 
 // helpBody represents the help message which is sent from netsoc-admin.
 type helpBody struct {
@@ -52,9 +31,10 @@ type helpBody struct {
 }
 
 func main() {
-	if err := loadConfig(); err != nil {
+	if err := config.LoadConfig(); err != nil {
 		log.Fatalf("Failed to load configuration JSON: %s", err)
 	}
+	conf = config.GetConfig()
 
 	var err error
 	l, err = logging.New()
@@ -105,7 +85,7 @@ func help(w http.ResponseWriter, r *http.Request) {
 		dg.ChannelMessageSend(conf.HelpChannelID, "help request error, check logs")
 		return
 	}
-	msg := fmt.Sprintf("%s elp pls\n\n```From: %s\nEmail: %s\n\nSubject: %s\n\n%s```", conf.SysAdminTag, resp.User, resp.Email, resp.Subject, resp.Message)
+	msg := fmt.Sprintf("%s Help pls\n\n```From: %s\nEmail: %s\n\nSubject: %s\n\n%s```", conf.SysAdminTag, resp.User, resp.Email, resp.Subject, resp.Message)
 	dg.ChannelMessageSend(conf.HelpChannelID, msg)
 }
 
@@ -122,23 +102,4 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	if err := commands.Execute(ctx, s, m, c); err != nil {
 		l.Errorf("Failed to execute command %q: %s", c, err)
 	}
-}
-
-// loadConfig loads the configuration information found in ./config.json
-func loadConfig() error {
-	file, err := ioutil.ReadFile("config.json")
-	if err != nil {
-		return fmt.Errorf("failed to read configuration file: %v", err)
-	}
-
-	if len(file) < 1 {
-		return errors.New("Configuration file 'config.json' was empty")
-	}
-
-	conf = &config{}
-	if err := json.Unmarshal(file, conf); err != nil {
-		return fmt.Errorf("failed to unmarshal configuration JSON: %s", err)
-	}
-
-	return nil
 }
