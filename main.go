@@ -9,16 +9,14 @@ import (
 	"net/http"
 	"strings"
 
-	
 	"github.com/UCCNetworkingSociety/Netsoc-Discord-Bot/commands"
 	"github.com/UCCNetworkingSociety/Netsoc-Discord-Bot/config"
 	"github.com/UCCNetworkingSociety/Netsoc-Discord-Bot/logging"
-	
 
-/* 	"./commands"
-	"./config"
-	"./logging"
- */
+	/* 	"./commands"
+	   	"./config"
+	   	"./logging" */
+
 	"github.com/bwmarrin/discordgo"
 )
 
@@ -93,7 +91,7 @@ func help(w http.ResponseWriter, r *http.Request) {
 		dg.ChannelMessageSend(conf.HelpChannelID, "help request error, check logs")
 		return
 	}
-	
+
 	msg := fmt.Sprintf("%s Help pls\n\n```From: %s\nEmail: %s\n\nSubject: %s\n\n%s```", conf.SysAdminTag, resp.User, resp.Email, resp.Subject, resp.Message)
 	dg.ChannelMessageSend(conf.HelpChannelID, msg)
 }

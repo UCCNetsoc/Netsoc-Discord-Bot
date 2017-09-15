@@ -1,11 +1,13 @@
 package commands
 
 import (
+	"os/exec"
 	"context"
 	"fmt"
 	"reflect"
 	"runtime"
 	"strings"
+	"strconv"
 
 	"github.com/UCCNetworkingSociety/Netsoc-Discord-Bot/logging"
 	"github.com/bwmarrin/discordgo"
@@ -66,8 +68,80 @@ func init() {
 		help: "If followed by a command name, it shows the details of the command",
 		exec: showHelpCommand,
 	}
+
+	commMap["top"] = &command{
+		name: "top",
+		help: "Prints the output of `top -b -n 1`",
+		exec: topCommand,
+	}
+
+	commMap["sensors"] = &command{
+		name: "sensors",
+		help: "Displays temperature of the server",
+		exec: sensorsCommand,
+	}
+
+	commMap["info"] = &command{
+		name: "info",
+		help: "Displays some info about NetsocBot",
+		exec: infoCommand,
+	}
 }
 
+func infoCommand(ctx context.Context, s *discordgo.Session, m *discordgo.MessageCreate, _ []string) error {
+	var mem runtime.MemStats
+	runtime.ReadMemStats(&mem)
+	
+	s.ChannelMessageSendEmbed(m.ChannelID, &discordgo.MessageEmbed{
+		Color: 0,
+
+		Fields: []*discordgo.MessageEmbedField{
+			{Name: "Memory Usage:", Value: "```"+strconv.Itoa(int(mem.Alloc/1024/1024)) + "MB"+"```", Inline: true},
+			{Name: "Goroutines:", Value: "```"+strconv.Itoa(runtime.NumGoroutine())+"```", Inline: true},
+			{Name: "Go Version:", Value: "```"+runtime.Version()+"```", Inline: true},
+			{Name: "Usable Cores:", Value: "```"+strconv.Itoa(runtime.NumCPU())+"```", Inline: true},			
+		},
+	})
+
+	return nil
+}
+
+func sensorsCommand(ctx context.Context, s *discordgo.Session, m *discordgo.MessageCreate, _ []string) error {
+	l, ok := logging.FromContext(ctx)
+	if ok {
+		l.Infof("Responding to top command")
+	}
+
+	cmd := exec.Command("sensors")
+	stdout, err := cmd.Output()
+	if err != nil {
+		l.Errorf("sensors command error %s", err)
+		return err
+	}
+
+	s.ChannelMessageSend(m.ChannelID, "```"+string(stdout)+"```")
+
+	return nil
+}
+
+func topCommand(ctx context.Context, s *discordgo.Session, m *discordgo.MessageCreate, _ []string) error {
+	l, ok := logging.FromContext(ctx)
+	if ok {
+		l.Infof("Responding to top command")
+	}
+
+	cmd := exec.Command("top", "-b", "-n", "1")
+	stdout, err := cmd.Output()
+	if err != nil {
+		l.Errorf("top command error %s", err)
+		return err
+	}
+
+	s.ChannelMessageSend(m.ChannelID, "```"+string(stdout[:1994])+"```")
+
+	return nil
+}
+	
 // pingCommand is a basic command which will responds "Pong!" to any ping.
 func pingCommand(ctx context.Context, s *discordgo.Session, m *discordgo.MessageCreate, _ []string) error {
 	l, ok := logging.FromContext(ctx)
