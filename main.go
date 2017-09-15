@@ -15,8 +15,8 @@ import (
 
 	/* 	"./commands"
 	   	"./config"
-	   	"./logging" */
-
+	   	"./logging"
+	*/
 	"github.com/bwmarrin/discordgo"
 )
 
