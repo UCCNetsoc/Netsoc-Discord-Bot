@@ -5,31 +5,14 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+
+	"github.com/imdario/mergo"
 )
 
 var (
 	// Set defaults for the config to ensure it works
 	// or warns even if a particular setting is missing
-	conf = &Config{
-		Prefix:        "!",
-		Token:         "warn",
-		HelpChannelID: "warn",
-		BotHostName:   "0.0.0.0:4201",
-		GuildID:       "291573897730588684",
-		SysAdminTag:   "<@&318907623476822016>",
-		Permissions: map[string][]string{
-			"alias": []string{
-				"Chairperson",
-				"Equipments Officer",
-				"Events Officer",
-				"Finance Officer",
-				"HLM",
-				"PRO",
-				"Secretary",
-				"SysAdmin",
-			},
-		},
-	}
+	conf *Config
 )
 
 // Config represetns the bot configuration loaded from the JSON
@@ -53,24 +36,64 @@ type Config struct {
 	GuildID     string `json:"guildID"`
 	SysAdminTag string `json:"sysAdminTag"`
 
+	// LogFiles dictate where our logs are stored
+	LogFiles *LogFiles `json:"logFiles"`
+
 	// Defines which roles can execute commands (if applicable)
 	Permissions map[string][]string `json:"permissions"`
+}
+
+// LogFiles dictate the files/paths of the log files
+type LogFiles struct {
+	InfoLog  string `json:"info_log"`
+	ErrorLog string `json:"error_log"`
+}
+
+func init() {
+	conf = &Config{
+		Prefix:        "!",
+		Token:         "warn",
+		HelpChannelID: "warn",
+		BotHostName:   "0.0.0.0:4201",
+		GuildID:       "291573897730588684",
+		SysAdminTag:   "<@&318907623476822016>",
+		LogFiles: &LogFiles{
+			InfoLog:  "info.log",
+			ErrorLog: "error.log",
+		},
+		Permissions: map[string][]string{
+			"alias": []string{
+				"Chairperson",
+				"Equipments Officer",
+				"Events Officer",
+				"Finance Officer",
+				"HLM",
+				"PRO",
+				"Secretary",
+				"SysAdmin",
+			},
+		},
+	}
 }
 
 // LoadConfig loads the configuration information found in ./config.json
 func LoadConfig() error {
 	file, err := ioutil.ReadFile("config.json")
 	if err != nil {
-		return fmt.Errorf("failed to read configuration file: %v", err)
+		return fmt.Errorf("Failed to read configuration file: %#v", err)
 	}
 
 	if len(file) < 1 {
 		return errors.New("Configuration file 'config.json' was empty")
 	}
 
-	conf = &Config{}
-	if err := json.Unmarshal(file, conf); err != nil {
-		return fmt.Errorf("failed to unmarshal configuration JSON: %s", err)
+	tmpconf := &Config{}
+	if err := json.Unmarshal(file, tmpconf); err != nil {
+		return fmt.Errorf("Failed to unmarshal configuration JSON: %s", err)
+	}
+
+	if err := mergo.MergeWithOverwrite(conf, tmpconf); err != nil {
+		return fmt.Errorf("Failed to merge configuration values: %#v", err)
 	}
 
 	return nil
