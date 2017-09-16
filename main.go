@@ -7,7 +7,9 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"strings"
+	"syscall"
 
 	"./commands"
 	"./config"
@@ -15,6 +17,7 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/go-fsnotify/fsnotify"
+	"github.com/kardianos/osext"
 )
 
 var (
@@ -64,6 +67,12 @@ func main() {
 		return
 	}
 	l.Infof("Bot successfully started")
+
+	_, watcher_err := watchSelf(l)
+	if watcher_err != nil {
+		// do something sensible
+		l.Errorf("%#v", watcher_err)
+	}
 
 	l.Infof("Watching config.json")
 	watchConfig(l)
@@ -147,4 +156,43 @@ func watchConfig(l *logging.Logger) {
 	}
 
 	<-done
+}
+
+// watchSelf watches for changes in the main binary and hot-swaps itself for the newly
+// built binary file
+func watchSelf(l *logging.Logger) (chan struct{}, error) {
+	file, err := osext.Executable()
+	if err != nil {
+		return nil, err
+	}
+	l.Infof("watching %q\n", file)
+	w, err := fsnotify.NewWatcher()
+	if err != nil {
+		return nil, err
+	}
+	done := make(chan struct{})
+	go func() {
+		for {
+			select {
+			case e := <-w.Events:
+				l.Infof("watcher received: %+v", e)
+				err := syscall.Exec(file, os.Args, os.Environ())
+				if err != nil {
+					l.Errorf("%#v", err)
+				}
+			case err := <-w.Errors:
+				l.Infof("watcher error: %+v", err)
+			case <-done:
+				l.Infof("watcher shutting down")
+				return
+			}
+		}
+	}()
+
+	l.Infof("%#v", file)
+	err = w.Add(file)
+	if err != nil {
+		return nil, err
+	}
+	return done, nil
 }
