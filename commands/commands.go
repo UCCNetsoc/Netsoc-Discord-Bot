@@ -83,7 +83,6 @@ func init() {
 	}
 
 	commMap["config"] = &command{
-		name: "config",
 		help: "Displays the config for NetsocBot",
 		exec: configCommand,
 	}
