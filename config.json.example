@@ -1,14 +1,29 @@
 {
-    "token": "AAABBBccccc1111",
-    "prefix": "!",
+    "token": "AAA",
+    "prefix": "±",
     "helpChannelId": "357195183999287296", 
     "sysAdminTag": "<@&318907623476822016>",
     "botHostName": "0.0.0.0:4201",
     "guildID": "291573897730588684",
+    "logFiles": {
+        "info_log": "info.log",
+        "error_log": "error.log"
+    },
     "permissions": {
-        "set" : [
+        "alias" : [
+            "Chairperson",
+            "Equipments Officer",
+            "Events Officer",
+            "Finance Officer",
+            "HLM",
+            "PRO",
+            "Secretary",
+            "SysAdmin"
+        ],
+        "config": [
             "SysAdmin",
             "HLM"
         ]
     }
 }
+
