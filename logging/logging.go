@@ -7,6 +7,8 @@ import (
 	"os"
 	"strings"
 	"time"
+
+	"github.com/UCCNetworkingSociety/Netsoc-Discord-Bot/config"
 )
 
 // Logger wraps up all your logging needs in one struct
@@ -27,11 +29,13 @@ const loggerContextKey conextKey = 0
 // New creates a new logger which logs to the given log file.
 // Note: you must defer a call to the logger's "Close" method.
 func New() (*Logger, error) {
-	infolf, err := os.OpenFile("info.log", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
+	conf := config.GetConfig()
+
+	infolf, err := os.OpenFile(conf.LogFiles.InfoLog, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open info log file 'info.log': %s", err)
 	}
-	errorlf, err := os.OpenFile("error.log", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
+	errorlf, err := os.OpenFile(conf.LogFiles.ErrorLog, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open error log file 'error.log': %s", err)
 	}
