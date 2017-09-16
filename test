@@ -6,7 +6,7 @@ FORMATTABLE="$(ls -d */)"
 LINTABLE=$(go list ./...)
 
 go test $PKGS -cover
-go vet $PKGS
+go vet main.go
 
 echo "Checking gofmt..."
 fmtRes=$(gofmt -l $FORMATTABLE)

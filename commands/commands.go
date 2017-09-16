@@ -9,8 +9,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/UCCNetworkingSociety/Netsoc-Discord-Bot/logging"
+	"../config"
+	"../logging"
 	"github.com/bwmarrin/discordgo"
+	"github.com/ulule/deepcopier"
 )
 
 var (
@@ -79,6 +81,41 @@ func init() {
 		help: "Displays some info about NetsocBot",
 		exec: infoCommand,
 	}
+
+	commMap["config"] = &command{
+		name: "config",
+		help: "Displays the config for NetsocBot",
+		exec: configCommand,
+	}
+}
+
+func configCommand(ctx context.Context, s *discordgo.Session, m *discordgo.MessageCreate, _ []string) error {
+	l, loggerOk := logging.FromContext(ctx)
+	if loggerOk {
+		l.Infof("Responding to config command", nil)
+	}
+
+	// Ensure user has permission to use this command
+	if !IsAllowed(ctx, s, m.Author.ID, "config") {
+		s.ChannelMessageSend(m.ChannelID, "You do not have permissions to use this command.")
+		if loggerOk {
+			l.Infof("%q is not allowed to execute the config command", m.Author)
+		}
+		return nil
+	}
+
+	tmpconf := &config.Config{}
+	deepcopier.Copy(config.GetConfig()).To(tmpconf)
+
+	s.ChannelMessageSendEmbed(m.ChannelID, &discordgo.MessageEmbed{
+		Color: 0,
+
+		Fields: []*discordgo.MessageEmbedField{
+			{Name: "Config:", Value: tmpconf.String(), Inline: true},
+		},
+	})
+
+	return nil
 }
 
 func infoCommand(ctx context.Context, s *discordgo.Session, m *discordgo.MessageCreate, _ []string) error {

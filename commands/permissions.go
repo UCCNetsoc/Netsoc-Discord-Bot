@@ -3,8 +3,8 @@ package commands
 import (
 	"context"
 
-	"github.com/UCCNetworkingSociety/Netsoc-Discord-Bot/config"
-	"github.com/UCCNetworkingSociety/Netsoc-Discord-Bot/logging"
+	"../config"
+	"../logging"
 	"github.com/bwmarrin/discordgo"
 )
 
