@@ -28,7 +28,6 @@ const HelpCommand = "help"
 // command is a function which executes the given command and arguments on
 // the provided discord session.
 type command struct {
-	name string
 	help string
 	exec func(context.Context, *discordgo.Session, *discordgo.MessageCreate, []string) error
 }
@@ -52,37 +51,31 @@ func init() {
 	// to ensure an alias doesn't overwrite their
 	// functionality
 	commMap["ping"] = &command{
-		name: "ping",
 		help: "Responds 'Pong!' to and 'ping'.",
 		exec: pingCommand,
 	}
 
 	commMap["alias"] = &command{
-		name: "alias",
 		help: "Sets a shortcut command. Usage: !alias keyword url_link_to_resource",
 		exec: aliasCommand,
 	}
 
 	commMap[HelpCommand] = &command{
-		name: HelpCommand,
 		help: "If followed by a command name, it shows the details of the command",
 		exec: showHelpCommand,
 	}
 
 	commMap["top"] = &command{
-		name: "top",
 		help: "Prints the output of `top -b -n 1`",
 		exec: topCommand,
 	}
 
 	commMap["sensors"] = &command{
-		name: "sensors",
 		help: "Displays temperature of the server",
 		exec: sensorsCommand,
 	}
 
 	commMap["info"] = &command{
-		name: "info",
 		help: "Displays some info about NetsocBot",
 		exec: infoCommand,
 	}
@@ -216,7 +209,7 @@ func showHelpCommand(ctx context.Context, s *discordgo.Session, m *discordgo.Mes
 				Color: 0,
 
 				Fields: []*discordgo.MessageEmbedField{
-					{Name: c.name, Value: c.help},
+					{Name: msg[1], Value: c.help},
 				},
 			})
 			return nil
@@ -248,7 +241,7 @@ func showHelpCommand(ctx context.Context, s *discordgo.Session, m *discordgo.Mes
 // Execute parses a msg and executes the command, if it exists.
 func Execute(ctx context.Context, s *discordgo.Session, m *discordgo.MessageCreate, msg string) error {
 	args := strings.Fields(msg)
-
+	fmt.Println(commMap)
 	// the help command is a special case because the help command must loop though
 	// the map of all other commands.
 	if c, ok := commMap[args[0]]; ok {
