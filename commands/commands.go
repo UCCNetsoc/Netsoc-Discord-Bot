@@ -9,8 +9,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/UCCNetworkingSociety/Netsoc-Discord-Bot/config"
-	"github.com/UCCNetworkingSociety/Netsoc-Discord-Bot/logging"
+	"../config"
+	"../logging"
 	"github.com/bwmarrin/discordgo"
 	"github.com/ulule/deepcopier"
 )

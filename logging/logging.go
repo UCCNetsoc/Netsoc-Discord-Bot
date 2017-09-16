@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/UCCNetworkingSociety/Netsoc-Discord-Bot/config"
+	"../config"
 )
 
 // Logger wraps up all your logging needs in one struct
