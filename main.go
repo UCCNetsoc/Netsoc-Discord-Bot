@@ -13,11 +13,8 @@ import (
 	"github.com/UCCNetworkingSociety/Netsoc-Discord-Bot/config"
 	"github.com/UCCNetworkingSociety/Netsoc-Discord-Bot/logging"
 
-	/* 	"./commands"
-	   	"./config"
-	   	"./logging"
-	*/
 	"github.com/bwmarrin/discordgo"
+	"github.com/go-fsnotify/fsnotify"
 )
 
 var (
@@ -68,6 +65,9 @@ func main() {
 	}
 	l.Infof("Bot successfully started")
 
+	l.Infof("Watching config.json")
+	watchConfig(l)
+
 	http.HandleFunc("/help", help)
 	if err := http.ListenAndServe(conf.BotHostName, nil); err != nil {
 		l.Errorf("Failed to serve HTTP: %s", err)
@@ -112,4 +112,39 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	if err := commands.Execute(ctx, s, m, c); err != nil {
 		l.Errorf("Failed to execute command %q: %s", c, err)
 	}
+}
+
+// WatchConfig monitors for changes in the config JSON file and reloads the
+// config values if there is
+func watchConfig(l *logging.Logger) {
+	// creates a new file watcher
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		l.Errorf("ERROR %#v", err)
+	}
+	defer watcher.Close()
+
+	done := make(chan bool)
+
+	go func() {
+		for {
+			select {
+			// watch for events
+			case event := <-watcher.Events:
+				l.Infof("Config file changed, reloading config. Event: %#v", event)
+				config.LoadConfig()
+
+				// watch for errors
+			case err := <-watcher.Errors:
+				l.Errorf("ERROR %#v", err)
+			}
+		}
+	}()
+
+	// out of the box fsnotify can watch a single file, or a single directory
+	if err := watcher.Add("./config.json"); err != nil {
+		l.Errorf("ERROR %#v", err)
+	}
+
+	<-done
 }

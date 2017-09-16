@@ -8,7 +8,28 @@ import (
 )
 
 var (
-	conf *Config
+	// Set defaults for the config to ensure it works
+	// or warns even if a particular setting is missing
+	conf = &Config{
+		Prefix:        "!",
+		Token:         "warn",
+		HelpChannelID: "warn",
+		BotHostName:   "0.0.0.0:4201",
+		GuildID:       "291573897730588684",
+		SysAdminTag:   "<@&318907623476822016>",
+		Permissions: map[string][]string{
+			"alias": []string{
+				"Chairperson",
+				"Equipments Officer",
+				"Events Officer",
+				"Finance Officer",
+				"HLM",
+				"PRO",
+				"Secretary",
+				"SysAdmin",
+			},
+		},
+	}
 )
 
 // Config represetns the bot configuration loaded from the JSON
