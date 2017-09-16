@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"time"
 )
 
 // Logger wraps up all your logging needs in one struct
@@ -46,7 +47,7 @@ func (l *Logger) Infof(fmtMsg string, opts ...interface{}) {
 	if !strings.HasSuffix(fmtMsg, "\n") {
 		fmtMsg += "\n"
 	}
-	fmt.Printf("I: %s", fmt.Sprintf(fmtMsg, opts...))
+	fmt.Printf("[%s] Info: %s", time.Now(), fmt.Sprintf(fmtMsg, opts...))
 	l.infol.Printf(fmtMsg, opts...)
 }
 
@@ -55,7 +56,7 @@ func (l *Logger) Errorf(fmtMsg string, opts ...interface{}) {
 	if !strings.HasSuffix(fmtMsg, "\n") {
 		fmtMsg += "\n"
 	}
-	fmt.Printf("E: %s", fmt.Sprintf(fmtMsg, opts...))
+	fmt.Printf("[%s] Error: %s", time.Now(), fmt.Sprintf(fmtMsg, opts...))
 	l.infol.Printf(fmtMsg, opts...)
 	l.errorl.Printf(fmtMsg, opts...)
 }
