@@ -68,10 +68,10 @@ func main() {
 	}
 	l.Infof("Bot successfully started")
 
-	_, watcher_err := watchSelf(l)
-	if watcher_err != nil {
+	_, watcherErr := watchSelf(l)
+	if watcherErr != nil {
 		// do something sensible
-		l.Errorf("%#v", watcher_err)
+		l.Errorf("%#v", watcherErr)
 	}
 
 	l.Infof("Watching config.json")
