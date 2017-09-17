@@ -8,6 +8,12 @@ specified help channel.
 ## Current Commands:
 
 * !ping - will reply "Pong!"
+* !alias - Sets a shortcut command. Usage: `!alias keyword url_link_to_resource`
+* !help - If followed by a command name, it shows the details of the command
+* !top - Prints the output of `top -b -n 1`
+* !sensors - Displays temperature of the server
+* !info - Displays some info about NetsocBot
+* !config - Displays the config for NetsocBot
 
 ## Config file
 
