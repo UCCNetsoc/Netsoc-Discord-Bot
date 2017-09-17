@@ -11,9 +11,9 @@ import (
 	"strings"
 	"syscall"
 
-	"./commands"
-	"./config"
-	"./logging"
+	"github.com/UCCNetworkingSociety/Netsoc-Discord-Bot/commands"
+	"github.com/UCCNetworkingSociety/Netsoc-Discord-Bot/config"
+	"github.com/UCCNetworkingSociety/Netsoc-Discord-Bot/logging"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/go-fsnotify/fsnotify"
