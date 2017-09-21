@@ -37,9 +37,9 @@ type command struct {
 func init() {
 	commMap = map[string]*command{}
 
-	err := LoadFromStorage("./storage/aliases.json", &savedAliases)
+	err := LoadFromStorage("storage/aliases.json", &savedAliases)
 	if err != nil {
-		panic(err)
+		fmt.Errorf("%#v", err)
 	}
 
 	for key, value := range savedAliases {
