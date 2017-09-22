@@ -31,7 +31,7 @@ const HelpCommand = "help"
 // the provided discord session.
 type command struct {
 	help string
-	exec func(context.Context, *discordgo.Session, *discordgo.MessageCreate, []string) error
+	exec func(context.Context, *discordgo.Session, *discordgo.MessageCreate, []string) (error, *discordgo.Message)
 }
 
 func init() {
@@ -88,7 +88,7 @@ func init() {
 	}
 }
 
-func configCommand(ctx context.Context, s *discordgo.Session, m *discordgo.MessageCreate, _ []string) error {
+func configCommand(ctx context.Context, s *discordgo.Session, m *discordgo.MessageCreate, _ []string) (error, *discordgo.Message) {
 	l, loggerOk := logging.FromContext(ctx)
 	if loggerOk {
 		l.Infof("Responding to config command", nil)
@@ -96,17 +96,17 @@ func configCommand(ctx context.Context, s *discordgo.Session, m *discordgo.Messa
 
 	// Ensure user has permission to use this command
 	if !IsAllowed(ctx, s, m.Author.ID, "config") {
-		s.ChannelMessageSend(m.ChannelID, "You do not have permissions to use this command.")
+		returnMsg, _ := s.ChannelMessageSend(m.ChannelID, "You do not have permissions to use this command.")
 		if loggerOk {
 			l.Infof("%q is not allowed to execute the config command", m.Author)
 		}
-		return nil
+		return nil, returnMsg
 	}
 
 	tmpconf := &config.Config{}
 	deepcopier.Copy(config.GetConfig()).To(tmpconf)
 
-	s.ChannelMessageSendEmbed(m.ChannelID, &discordgo.MessageEmbed{
+	returnMsg, _ := s.ChannelMessageSendEmbed(m.ChannelID, &discordgo.MessageEmbed{
 		Color: 0,
 
 		Fields: []*discordgo.MessageEmbedField{
@@ -114,14 +114,14 @@ func configCommand(ctx context.Context, s *discordgo.Session, m *discordgo.Messa
 		},
 	})
 
-	return nil
+	return nil, returnMsg
 }
 
-func infoCommand(ctx context.Context, s *discordgo.Session, m *discordgo.MessageCreate, _ []string) error {
+func infoCommand(ctx context.Context, s *discordgo.Session, m *discordgo.MessageCreate, _ []string) (error, *discordgo.Message) {
 	var mem runtime.MemStats
 	runtime.ReadMemStats(&mem)
 
-	s.ChannelMessageSendEmbed(m.ChannelID, &discordgo.MessageEmbed{
+	returnMsg, _ := s.ChannelMessageSendEmbed(m.ChannelID, &discordgo.MessageEmbed{
 		Color: 0,
 
 		Fields: []*discordgo.MessageEmbedField{
@@ -132,10 +132,10 @@ func infoCommand(ctx context.Context, s *discordgo.Session, m *discordgo.Message
 		},
 	})
 
-	return nil
+	return nil, returnMsg
 }
 
-func sensorsCommand(ctx context.Context, s *discordgo.Session, m *discordgo.MessageCreate, _ []string) error {
+func sensorsCommand(ctx context.Context, s *discordgo.Session, m *discordgo.MessageCreate, _ []string) (error, *discordgo.Message) {
 	l, ok := logging.FromContext(ctx)
 	if ok {
 		l.Infof("Responding to top command")
@@ -145,15 +145,15 @@ func sensorsCommand(ctx context.Context, s *discordgo.Session, m *discordgo.Mess
 	stdout, err := cmd.Output()
 	if err != nil {
 		l.Errorf("sensors command error %s", err)
-		return err
+		return err, nil
 	}
 
-	s.ChannelMessageSend(m.ChannelID, "```"+string(stdout)+"```")
+	returnMsg, _ := s.ChannelMessageSend(m.ChannelID, "```"+string(stdout)+"```")
 
-	return nil
+	return nil, returnMsg
 }
 
-func topCommand(ctx context.Context, s *discordgo.Session, m *discordgo.MessageCreate, _ []string) error {
+func topCommand(ctx context.Context, s *discordgo.Session, m *discordgo.MessageCreate, _ []string) (error, *discordgo.Message) {
 	l, ok := logging.FromContext(ctx)
 	if ok {
 		l.Infof("Responding to top command")
@@ -163,52 +163,52 @@ func topCommand(ctx context.Context, s *discordgo.Session, m *discordgo.MessageC
 	stdout, err := cmd.Output()
 	if err != nil {
 		l.Errorf("top command error %s", err)
-		return err
+		return err, nil
 	}
 
-	s.ChannelMessageSend(m.ChannelID, "```"+string(stdout[:1994])+"```")
+	returnMsg, _ := s.ChannelMessageSend(m.ChannelID, "```"+string(stdout[:1994])+"```")
 
-	return nil
+	return nil, returnMsg
 }
 
 // pingCommand is a basic command which will responds "Pong!" to any ping.
-func pingCommand(ctx context.Context, s *discordgo.Session, m *discordgo.MessageCreate, _ []string) error {
+func pingCommand(ctx context.Context, s *discordgo.Session, m *discordgo.MessageCreate, _ []string) (error, *discordgo.Message) {
 	l, ok := logging.FromContext(ctx)
-	s.ChannelMessageSend(m.ChannelID, "Pong!")
+	returnMsg, _ := s.ChannelMessageSend(m.ChannelID, "Pong!")
 	if ok {
 		l.Infof("Responding 'Pong!' to ping command")
 	}
-	return nil
+	return nil, returnMsg
 }
 
 // aliasCommand sets string => string shortcut that can be called later to print a value
-func aliasCommand(ctx context.Context, s *discordgo.Session, m *discordgo.MessageCreate, c []string) error {
+func aliasCommand(ctx context.Context, s *discordgo.Session, m *discordgo.MessageCreate, c []string) (error, *discordgo.Message) {
 	l, loggerOk := logging.FromContext(ctx)
 
 	if len(c) < 3 {
-		s.ChannelMessageSend(m.ChannelID, "Too few arguments supplied. Refer to !help for usage.")
-		return fmt.Errorf("Too few arguments supplied for set command")
+		returnMsg, _ := s.ChannelMessageSend(m.ChannelID, "Too few arguments supplied. Refer to !help for usage.")
+		return fmt.Errorf("Too few arguments supplied for set command"), returnMsg
 	} else if len(c) > 3 {
-		s.ChannelMessageSend(m.ChannelID, "Too many arguments supplied. Refer to !help for usage.")
-		return fmt.Errorf("Too many arguments supplied for set command")
+		returnMsg, _ := s.ChannelMessageSend(m.ChannelID, "Too many arguments supplied. Refer to !help for usage.")
+		return fmt.Errorf("Too many arguments supplied for set command"), returnMsg
 	}
 
 	// Ensure user has permission to use this command
 	if !IsAllowed(ctx, s, m.Author.ID, "alias") {
-		s.ChannelMessageSend(m.ChannelID, "You do not have permissions to use this command.")
+		returnMsg, _ := s.ChannelMessageSend(m.ChannelID, "You do not have permissions to use this command.")
 		if loggerOk {
 			l.Infof("%q is not allowed to execute the alias command", m.Author)
 		}
-		return nil
+		return nil, returnMsg
 	}
 
 	if _, ok := commMap[c[1]]; ok && GetFunctionName(printShortcut) != GetFunctionName(commMap[c[1]].exec) {
 		// If key already exists and who's function is not printShortcut OR is not the "help" command
-		s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("%s is a registered command and cannot be set as an alias.", c[1]))
+		returnMsg, _ := s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("%s is a registered command and cannot be set as an alias.", c[1]))
 		if loggerOk {
 			l.Infof("%s attempted to overwrite command %s with %s", m.Author, c[1], c[2])
 		}
-		return nil
+		return nil, returnMsg
 	}
 
 	// If key does not exist (or who's function is printShortcut)
@@ -220,42 +220,42 @@ func aliasCommand(ctx context.Context, s *discordgo.Session, m *discordgo.Messag
 	savedAliases[c[1]] = c[2]
 	if err := WriteToStorage("./storage/aliases.json", savedAliases); err != nil {
 		l.Errorf("Error writing alias to file")
-		s.ChannelMessageSend(m.ChannelID, "Error writing alias to file.")
-		return err
+		returnMsg, _ := s.ChannelMessageSend(m.ChannelID, "Error writing alias to file.")
+		return err, returnMsg
 	}
 
 	if loggerOk {
 		l.Infof("%s has set an alias for %s => %s", m.Author, c[1], c[2])
 	}
 
-	s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("%s has set an alias for %s => %s", m.Author, c[1], c[2]))
+	returnMsg, _ := s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("%s has set an alias for %s => %s", m.Author, c[1], c[2]))
 
-	return nil
+	return nil, returnMsg
 }
 
 // showHelpCommand lists all of the commands available and explains what they do.
-func showHelpCommand(ctx context.Context, s *discordgo.Session, m *discordgo.MessageCreate, msg []string) error {
+func showHelpCommand(ctx context.Context, s *discordgo.Session, m *discordgo.MessageCreate, msg []string) (error, *discordgo.Message) {
 	if l, ok := logging.FromContext(ctx); ok {
 		l.Infof("Responding to help command")
 	}
 
 	if len(msg) == 2 {
 		if c, ok := commMap[msg[1]]; ok {
-			s.ChannelMessageSendEmbed(m.ChannelID, &discordgo.MessageEmbed{
+			returnMsg, _ := s.ChannelMessageSendEmbed(m.ChannelID, &discordgo.MessageEmbed{
 				Color: 0,
 
 				Fields: []*discordgo.MessageEmbedField{
 					{Name: msg[1], Value: c.help},
 				},
 			})
-			return nil
+			return nil, returnMsg
 		}
 
-		s.ChannelMessageSend(m.ChannelID, "Command not found.")
-		return nil
+		returnMsg, _ := s.ChannelMessageSend(m.ChannelID, "Command not found.")
+		return nil, returnMsg
 	}
 
-	s.ChannelMessageSendEmbed(m.ChannelID, &discordgo.MessageEmbed{
+	returnMsg, _ := s.ChannelMessageSendEmbed(m.ChannelID, &discordgo.MessageEmbed{
 		Color: 0,
 
 		Fields: func() []*discordgo.MessageEmbedField {
@@ -271,7 +271,7 @@ func showHelpCommand(ctx context.Context, s *discordgo.Session, m *discordgo.Mes
 			return out
 		}(),
 	})
-	return nil
+	return nil, returnMsg
 }
 
 // Execute parses a msg and executes the command, if it exists.
@@ -281,7 +281,7 @@ func Execute(ctx context.Context, s *discordgo.Session, m *discordgo.MessageCrea
 	// the help command is a special case because the help command must loop though
 	// the map of all other commands.
 	if c, ok := commMap[args[0]]; ok {
-		if err := c.exec(ctx, s, m, args); err != nil {
+		if err, _ := c.exec(ctx, s, m, args); err != nil {
 			return fmt.Errorf("failed to execute command: %s", err)
 		}
 		return nil
@@ -290,9 +290,9 @@ func Execute(ctx context.Context, s *discordgo.Session, m *discordgo.MessageCrea
 }
 
 // printShortcut uses the help text of the command to print the shortcut's value
-func printShortcut(ctx context.Context, s *discordgo.Session, m *discordgo.MessageCreate, args []string) error {
-	s.ChannelMessageSend(m.ChannelID, commMap[args[0]].help)
-	return nil
+func printShortcut(ctx context.Context, s *discordgo.Session, m *discordgo.MessageCreate, args []string) (error, *discordgo.Message) {
+	returnMsg, _ := s.ChannelMessageSend(m.ChannelID, commMap[args[0]].help)
+	return nil, returnMsg
 }
 
 // GetFunctionName returns the name of a given function
