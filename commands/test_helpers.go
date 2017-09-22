@@ -50,31 +50,31 @@ func assertMethod(t *testing.T, expectedMethod string, req *http.Request) {
 	assert.Equal(t, expectedMethod, req.Method)
 }
 
-// assertQuery tests that the Request has the expected url query key/val pairs
-func assertQuery(t *testing.T, expected map[string]string, req *http.Request) {
-	queryValues := req.URL.Query()
-	expectedValues := url.Values{}
-	for key, value := range expected {
-		expectedValues.Add(key, value)
-	}
-	assert.Equal(t, expectedValues, queryValues)
-}
+// // assertQuery tests that the Request has the expected url query key/val pairs
+// func assertQuery(t *testing.T, expected map[string]string, req *http.Request) {
+// 	queryValues := req.URL.Query()
+// 	expectedValues := url.Values{}
+// 	for key, value := range expected {
+// 		expectedValues.Add(key, value)
+// 	}
+// 	assert.Equal(t, expectedValues, queryValues)
+// }
 
-// assertPostForm tests that the Request has the expected key values pairs url
-// encoded in its Body
-func assertPostForm(t *testing.T, expected map[string]string, req *http.Request) {
-	req.ParseForm() // parses request Body to put url.Values in r.Form/r.PostForm
-	expectedValues := url.Values{}
-	for key, value := range expected {
-		expectedValues.Add(key, value)
-	}
-	assert.Equal(t, expectedValues, req.Form)
-}
+// // assertPostForm tests that the Request has the expected key values pairs url
+// // encoded in its Body
+// func assertPostForm(t *testing.T, expected map[string]string, req *http.Request) {
+// 	req.ParseForm() // parses request Body to put url.Values in r.Form/r.PostForm
+// 	expectedValues := url.Values{}
+// 	for key, value := range expected {
+// 		expectedValues.Add(key, value)
+// 	}
+// 	assert.Equal(t, expectedValues, req.Form)
+// }
 
 // createTestMessage populates an example message sent to the discord API
 func createTestMessage(content string) *discordgo.MessageCreate {
 	return &discordgo.MessageCreate{
-		&discordgo.Message{
+		Message: &discordgo.Message{
 			ID:              "1",
 			ChannelID:       "354748497683283979",
 			Content:         content,
