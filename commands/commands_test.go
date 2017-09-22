@@ -49,7 +49,7 @@ func TestPingCommand(t *testing.T) {
 	ctx, s, m := getTestCommandParams(httpClient)
 	msgContent := []string{}
 
-	err, returnMsg := pingCommand(ctx, s, m, msgContent)
+	returnMsg, err := pingCommand(ctx, s, m, msgContent)
 	assert.Nil(t, err)
 	assert.Equal(t, expected, returnMsg)
 }

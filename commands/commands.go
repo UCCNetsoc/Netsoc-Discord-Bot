@@ -31,16 +31,13 @@ const HelpCommand = "help"
 // the provided discord session.
 type command struct {
 	help string
-	exec func(context.Context, *discordgo.Session, *discordgo.MessageCreate, []string) (error, *discordgo.Message)
+	exec func(context.Context, *discordgo.Session, *discordgo.MessageCreate, []string) (*discordgo.Message, error)
 }
 
 func init() {
 	commMap = map[string]*command{}
 
-	err := LoadFromStorage("storage/aliases.json", &savedAliases)
-	if err != nil {
-		fmt.Errorf("%#v", err)
-	}
+	LoadFromStorage("storage/aliases.json", &savedAliases)
 
 	for key, value := range savedAliases {
 		commMap[key] = &command{
@@ -88,7 +85,7 @@ func init() {
 	}
 }
 
-func configCommand(ctx context.Context, s *discordgo.Session, m *discordgo.MessageCreate, _ []string) (error, *discordgo.Message) {
+func configCommand(ctx context.Context, s *discordgo.Session, m *discordgo.MessageCreate, _ []string) (*discordgo.Message, error) {
 	l, loggerOk := logging.FromContext(ctx)
 	if loggerOk {
 		l.Infof("Responding to config command", nil)
@@ -100,7 +97,7 @@ func configCommand(ctx context.Context, s *discordgo.Session, m *discordgo.Messa
 		if loggerOk {
 			l.Infof("%q is not allowed to execute the config command", m.Author)
 		}
-		return nil, returnMsg
+		return returnMsg, nil
 	}
 
 	tmpconf := &config.Config{}
@@ -114,10 +111,10 @@ func configCommand(ctx context.Context, s *discordgo.Session, m *discordgo.Messa
 		},
 	})
 
-	return nil, returnMsg
+	return returnMsg, nil
 }
 
-func infoCommand(ctx context.Context, s *discordgo.Session, m *discordgo.MessageCreate, _ []string) (error, *discordgo.Message) {
+func infoCommand(ctx context.Context, s *discordgo.Session, m *discordgo.MessageCreate, _ []string) (*discordgo.Message, error) {
 	var mem runtime.MemStats
 	runtime.ReadMemStats(&mem)
 
@@ -132,10 +129,10 @@ func infoCommand(ctx context.Context, s *discordgo.Session, m *discordgo.Message
 		},
 	})
 
-	return nil, returnMsg
+	return returnMsg, nil
 }
 
-func sensorsCommand(ctx context.Context, s *discordgo.Session, m *discordgo.MessageCreate, _ []string) (error, *discordgo.Message) {
+func sensorsCommand(ctx context.Context, s *discordgo.Session, m *discordgo.MessageCreate, _ []string) (*discordgo.Message, error) {
 	l, ok := logging.FromContext(ctx)
 	if ok {
 		l.Infof("Responding to top command")
@@ -145,15 +142,15 @@ func sensorsCommand(ctx context.Context, s *discordgo.Session, m *discordgo.Mess
 	stdout, err := cmd.Output()
 	if err != nil {
 		l.Errorf("sensors command error %s", err)
-		return err, nil
+		return nil, err
 	}
 
 	returnMsg, _ := s.ChannelMessageSend(m.ChannelID, "```"+string(stdout)+"```")
 
-	return nil, returnMsg
+	return returnMsg, nil
 }
 
-func topCommand(ctx context.Context, s *discordgo.Session, m *discordgo.MessageCreate, _ []string) (error, *discordgo.Message) {
+func topCommand(ctx context.Context, s *discordgo.Session, m *discordgo.MessageCreate, _ []string) (*discordgo.Message, error) {
 	l, ok := logging.FromContext(ctx)
 	if ok {
 		l.Infof("Responding to top command")
@@ -163,34 +160,34 @@ func topCommand(ctx context.Context, s *discordgo.Session, m *discordgo.MessageC
 	stdout, err := cmd.Output()
 	if err != nil {
 		l.Errorf("top command error %s", err)
-		return err, nil
+		return nil, err
 	}
 
 	returnMsg, _ := s.ChannelMessageSend(m.ChannelID, "```"+string(stdout[:1994])+"```")
 
-	return nil, returnMsg
+	return returnMsg, nil
 }
 
 // pingCommand is a basic command which will responds "Pong!" to any ping.
-func pingCommand(ctx context.Context, s *discordgo.Session, m *discordgo.MessageCreate, _ []string) (error, *discordgo.Message) {
+func pingCommand(ctx context.Context, s *discordgo.Session, m *discordgo.MessageCreate, _ []string) (*discordgo.Message, error) {
 	l, ok := logging.FromContext(ctx)
 	returnMsg, _ := s.ChannelMessageSend(m.ChannelID, "Pong!")
 	if ok {
 		l.Infof("Responding 'Pong!' to ping command")
 	}
-	return nil, returnMsg
+	return returnMsg, nil
 }
 
 // aliasCommand sets string => string shortcut that can be called later to print a value
-func aliasCommand(ctx context.Context, s *discordgo.Session, m *discordgo.MessageCreate, c []string) (error, *discordgo.Message) {
+func aliasCommand(ctx context.Context, s *discordgo.Session, m *discordgo.MessageCreate, c []string) (*discordgo.Message, error) {
 	l, loggerOk := logging.FromContext(ctx)
 
 	if len(c) < 3 {
 		returnMsg, _ := s.ChannelMessageSend(m.ChannelID, "Too few arguments supplied. Refer to !help for usage.")
-		return fmt.Errorf("Too few arguments supplied for set command"), returnMsg
+		return returnMsg, fmt.Errorf("Too few arguments supplied for set command")
 	} else if len(c) > 3 {
 		returnMsg, _ := s.ChannelMessageSend(m.ChannelID, "Too many arguments supplied. Refer to !help for usage.")
-		return fmt.Errorf("Too many arguments supplied for set command"), returnMsg
+		return returnMsg, fmt.Errorf("Too many arguments supplied for set command")
 	}
 
 	// Ensure user has permission to use this command
@@ -199,7 +196,7 @@ func aliasCommand(ctx context.Context, s *discordgo.Session, m *discordgo.Messag
 		if loggerOk {
 			l.Infof("%q is not allowed to execute the alias command", m.Author)
 		}
-		return nil, returnMsg
+		return returnMsg, nil
 	}
 
 	if _, ok := commMap[c[1]]; ok && GetFunctionName(printShortcut) != GetFunctionName(commMap[c[1]].exec) {
@@ -208,7 +205,7 @@ func aliasCommand(ctx context.Context, s *discordgo.Session, m *discordgo.Messag
 		if loggerOk {
 			l.Infof("%s attempted to overwrite command %s with %s", m.Author, c[1], c[2])
 		}
-		return nil, returnMsg
+		return returnMsg, nil
 	}
 
 	// If key does not exist (or who's function is printShortcut)
@@ -221,7 +218,7 @@ func aliasCommand(ctx context.Context, s *discordgo.Session, m *discordgo.Messag
 	if err := WriteToStorage("./storage/aliases.json", savedAliases); err != nil {
 		l.Errorf("Error writing alias to file")
 		returnMsg, _ := s.ChannelMessageSend(m.ChannelID, "Error writing alias to file.")
-		return err, returnMsg
+		return returnMsg, err
 	}
 
 	if loggerOk {
@@ -230,11 +227,11 @@ func aliasCommand(ctx context.Context, s *discordgo.Session, m *discordgo.Messag
 
 	returnMsg, _ := s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("%s has set an alias for %s => %s", m.Author, c[1], c[2]))
 
-	return nil, returnMsg
+	return returnMsg, nil
 }
 
 // showHelpCommand lists all of the commands available and explains what they do.
-func showHelpCommand(ctx context.Context, s *discordgo.Session, m *discordgo.MessageCreate, msg []string) (error, *discordgo.Message) {
+func showHelpCommand(ctx context.Context, s *discordgo.Session, m *discordgo.MessageCreate, msg []string) (*discordgo.Message, error) {
 	if l, ok := logging.FromContext(ctx); ok {
 		l.Infof("Responding to help command")
 	}
@@ -248,11 +245,11 @@ func showHelpCommand(ctx context.Context, s *discordgo.Session, m *discordgo.Mes
 					{Name: msg[1], Value: c.help},
 				},
 			})
-			return nil, returnMsg
+			return returnMsg, nil
 		}
 
 		returnMsg, _ := s.ChannelMessageSend(m.ChannelID, "Command not found.")
-		return nil, returnMsg
+		return returnMsg, nil
 	}
 
 	returnMsg, _ := s.ChannelMessageSendEmbed(m.ChannelID, &discordgo.MessageEmbed{
@@ -271,7 +268,7 @@ func showHelpCommand(ctx context.Context, s *discordgo.Session, m *discordgo.Mes
 			return out
 		}(),
 	})
-	return nil, returnMsg
+	return returnMsg, nil
 }
 
 // Execute parses a msg and executes the command, if it exists.
@@ -282,7 +279,7 @@ func Execute(ctx context.Context, s *discordgo.Session, m *discordgo.MessageCrea
 	// the map of all other commands.
 	if c, ok := commMap[args[0]]; ok {
 		if err, _ := c.exec(ctx, s, m, args); err != nil {
-			return fmt.Errorf("failed to execute command: %s", err)
+			return fmt.Errorf("failed to execute command: %#v", err)
 		}
 		return nil
 	}
@@ -290,9 +287,9 @@ func Execute(ctx context.Context, s *discordgo.Session, m *discordgo.MessageCrea
 }
 
 // printShortcut uses the help text of the command to print the shortcut's value
-func printShortcut(ctx context.Context, s *discordgo.Session, m *discordgo.MessageCreate, args []string) (error, *discordgo.Message) {
+func printShortcut(ctx context.Context, s *discordgo.Session, m *discordgo.MessageCreate, args []string) (*discordgo.Message, error) {
 	returnMsg, _ := s.ChannelMessageSend(m.ChannelID, commMap[args[0]].help)
-	return nil, returnMsg
+	return returnMsg, nil
 }
 
 // GetFunctionName returns the name of a given function
