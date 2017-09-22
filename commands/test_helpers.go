@@ -2,11 +2,9 @@ package commands
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"strings"
 	"testing"
 
 	"github.com/bwmarrin/discordgo"
