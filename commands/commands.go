@@ -19,6 +19,7 @@ var (
 	// commMap maps the name of a command to the function which executes the command
 	commMap map[string]*command
 
+	aliasMap map[string]*command
 	// savedAliases stores all shortcut alias commands
 	savedAliases = map[string]string{}
 )
@@ -36,11 +37,12 @@ type command struct {
 
 func init() {
 	commMap = map[string]*command{}
-
+	aliasMap = map[string]*command{}
+	
 	LoadFromStorage("storage/aliases.json", &savedAliases)
 
 	for key, value := range savedAliases {
-		commMap[key] = &command{
+		aliasMap[key] = &command{
 			help: value,
 			exec: printShortcut,
 		}
@@ -182,12 +184,30 @@ func pingCommand(ctx context.Context, s *discordgo.Session, m *discordgo.Message
 func aliasCommand(ctx context.Context, s *discordgo.Session, m *discordgo.MessageCreate, c []string) (*discordgo.Message, error) {
 	l, loggerOk := logging.FromContext(ctx)
 
-	if len(c) < 3 {
+	fmt.Println(len(c))
+
+	switch {
+	case len(c) == 1:
+		returnMsg, _ := s.ChannelMessageSendEmbed(m.ChannelID, &discordgo.MessageEmbed{
+			Color: 0,
+	
+			Fields: func() []*discordgo.MessageEmbedField {
+				var out []*discordgo.MessageEmbedField
+	
+				for name, c := range aliasMap {
+					out = append(out, &discordgo.MessageEmbedField{
+						Name:  name,
+						Value: c.help,
+					})
+				}
+	
+				return out
+			}(),
+		})
+		return returnMsg, nil
+	case len(c) == 2:
 		returnMsg, _ := s.ChannelMessageSend(m.ChannelID, "Too few arguments supplied. Refer to !help for usage.")
 		return returnMsg, fmt.Errorf("Too few arguments supplied for set command")
-	} else if len(c) > 3 {
-		returnMsg, _ := s.ChannelMessageSend(m.ChannelID, "Too many arguments supplied. Refer to !help for usage.")
-		return returnMsg, fmt.Errorf("Too many arguments supplied for set command")
 	}
 
 	// Ensure user has permission to use this command
@@ -199,22 +219,23 @@ func aliasCommand(ctx context.Context, s *discordgo.Session, m *discordgo.Messag
 		return returnMsg, nil
 	}
 
-	if _, ok := commMap[c[1]]; ok && GetFunctionName(printShortcut) != GetFunctionName(commMap[c[1]].exec) {
+	_, ok1 := aliasMap[c[1]];
+	if _, ok := commMap[c[1]]; ok1 || ok && GetFunctionName(printShortcut) != GetFunctionName(commMap[c[1]].exec) {
 		// If key already exists and who's function is not printShortcut OR is not the "help" command
-		returnMsg, _ := s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("%s is a registered command and cannot be set as an alias.", c[1]))
+		returnMsg, _ := s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("%s is a registered command/alias and cannot be set as an alias.", c[1]))
 		if loggerOk {
-			l.Infof("%s attempted to overwrite command %s with %s", m.Author, c[1], c[2])
+			l.Infof("%s attempted to overwrite command %s with %s", m.Author, c[1], strings.Join(c[2:], " "))
 		}
 		return returnMsg, nil
 	}
 
 	// If key does not exist (or who's function is printShortcut)
-	commMap[c[1]] = &command{
-		help: c[2],
+	aliasMap[c[1]] = &command{
+		help: strings.Join(c[2:], " "),
 		exec: printShortcut,
 	}
 
-	savedAliases[c[1]] = c[2]
+	savedAliases[c[1]] = strings.Join(c[2:], " ")
 	if err := WriteToStorage("./storage/aliases.json", savedAliases); err != nil {
 		l.Errorf("Error writing alias to file")
 		returnMsg, _ := s.ChannelMessageSend(m.ChannelID, "Error writing alias to file.")
@@ -222,10 +243,10 @@ func aliasCommand(ctx context.Context, s *discordgo.Session, m *discordgo.Messag
 	}
 
 	if loggerOk {
-		l.Infof("%s has set an alias for %s => %s", m.Author, c[1], c[2])
+		l.Infof("%s has set an alias for %s => %s", m.Author, c[1], strings.Join(c[2:], " "))
 	}
 
-	returnMsg, _ := s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("%s has set an alias for %s => %s", m.Author, c[1], c[2]))
+	returnMsg, _ := s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("%s has set an alias for %s => %s", m.Author, c[1], strings.Join(c[2:], " ")))
 
 	return returnMsg, nil
 }
@@ -282,6 +303,8 @@ func Execute(ctx context.Context, s *discordgo.Session, m *discordgo.MessageCrea
 			return fmt.Errorf("failed to execute command: %#v", err)
 		}
 		return nil
+	} else if val, ok := aliasMap[args[0]]; ok {
+		s.ChannelMessageSend(m.ChannelID, val.help)
 	}
 	return fmt.Errorf("Failed to recognise the command %q", args[0])
 }
