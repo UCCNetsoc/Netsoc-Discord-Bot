@@ -75,8 +75,13 @@ func main() {
 	}
 
 	l.Infof("Watching config.json")
-	watchConfig(l)
+	_, watcherErr = watchConfig(l)
+	if watcherErr != nil {
+		// do something sensible
+		l.Errorf("%#v", watcherErr)
+	}
 
+	l.Infof("Serving http server on %s", conf.BotHostName)
 	http.HandleFunc("/help", help)
 	if err := http.ListenAndServe(conf.BotHostName, nil); err != nil {
 		l.Errorf("Failed to serve HTTP: %s", err)
@@ -125,13 +130,12 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 // WatchConfig monitors for changes in the config JSON file and reloads the
 // config values if there is
-func watchConfig(l *logging.Logger) {
+func watchConfig(l *logging.Logger) (chan bool, error) {
 	// creates a new file watcher
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		l.Errorf("ERROR %#v", err)
 	}
-	defer watcher.Close()
 
 	done := make(chan bool)
 
@@ -146,6 +150,10 @@ func watchConfig(l *logging.Logger) {
 				// watch for errors
 			case err := <-watcher.Errors:
 				l.Errorf("ERROR %#v", err)
+
+			case <-done:
+				l.Infof("watcher shutting down")
+				return
 			}
 		}
 	}()
@@ -155,7 +163,7 @@ func watchConfig(l *logging.Logger) {
 		l.Errorf("ERROR %#v", err)
 	}
 
-	<-done
+	return done, nil
 }
 
 // watchSelf watches for changes in the main binary and hot-swaps itself for the newly
