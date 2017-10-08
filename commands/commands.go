@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os/exec"
-	"reflect"
 	"runtime"
 	"strconv"
 	"strings"
@@ -220,7 +219,7 @@ func aliasCommand(ctx context.Context, s *discordgo.Session, m *discordgo.Messag
 	}
 
 	_, ok1 := aliasMap[c[1]];
-	if _, ok := commMap[c[1]]; ok1 || ok && GetFunctionName(printShortcut) != GetFunctionName(commMap[c[1]].exec) {
+	if _, ok := commMap[c[1]]; ok1 || ok {
 		// If key already exists and who's function is not printShortcut OR is not the "help" command
 		returnMsg, _ := s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("%s is a registered command/alias and cannot be set as an alias.", c[1]))
 		if loggerOk {
@@ -295,16 +294,17 @@ func showHelpCommand(ctx context.Context, s *discordgo.Session, m *discordgo.Mes
 // Execute parses a msg and executes the command, if it exists.
 func Execute(ctx context.Context, s *discordgo.Session, m *discordgo.MessageCreate, msg string) error {
 	args := strings.Fields(msg)
-	fmt.Println(commMap)
+
 	// the help command is a special case because the help command must loop though
 	// the map of all other commands.
 	if c, ok := commMap[args[0]]; ok {
-		if err, _ := c.exec(ctx, s, m, args); err != nil {
+		if _, err := c.exec(ctx, s, m, args); err != nil {
 			return fmt.Errorf("failed to execute command: %#v", err)
 		}
 		return nil
 	} else if val, ok := aliasMap[args[0]]; ok {
 		s.ChannelMessageSend(m.ChannelID, val.help)
+		return nil
 	}
 	return fmt.Errorf("Failed to recognise the command %q", args[0])
 }
@@ -313,9 +313,4 @@ func Execute(ctx context.Context, s *discordgo.Session, m *discordgo.MessageCrea
 func printShortcut(ctx context.Context, s *discordgo.Session, m *discordgo.MessageCreate, args []string) (*discordgo.Message, error) {
 	returnMsg, _ := s.ChannelMessageSend(m.ChannelID, commMap[args[0]].help)
 	return returnMsg, nil
-}
-
-// GetFunctionName returns the name of a given function
-func GetFunctionName(i interface{}) string {
-	return runtime.FuncForPC(reflect.ValueOf(i).Pointer()).Name()
 }
