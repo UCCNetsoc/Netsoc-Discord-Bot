@@ -2,7 +2,12 @@ package commands
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"math/rand"
+	"net/http"
+	"net/url"
 	"os/exec"
 	"runtime"
 	"strconv"
@@ -37,7 +42,7 @@ type command struct {
 func init() {
 	commMap = map[string]*command{}
 	aliasMap = map[string]*command{}
-	
+
 	LoadFromStorage("storage/aliases.json", &savedAliases)
 
 	for key, value := range savedAliases {
@@ -84,6 +89,53 @@ func init() {
 		help: "Displays the config for NetsocBot",
 		exec: configCommand,
 	}
+
+	commMap["inspire"] = &command{
+		help: "Gives an inspirational quote",
+		exec: inspireCommand,
+	}
+}
+
+// inspireCommand gets an inspirational quote from forismatic.com
+func inspireCommand(ctx context.Context, s *discordgo.Session, m *discordgo.MessageCreate, _ []string) (*discordgo.Message, error) {
+	l, loggerOk := logging.FromContext(ctx)
+	if loggerOk {
+		l.Infof("Responding to inspire command", nil)
+	}
+
+	resp, err := http.PostForm("http://api.forismatic.com/api/1.0/",
+		url.Values{
+			"method": {"getQuote"},
+			"format": {"json"},
+			"key":    {strconv.Itoa(rand.Intn(1000000))},
+			"lang":   {"en"},
+		})
+	if err != nil {
+		return nil, fmt.Errorf("Failed to get the quote from API: %v", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to read the response body: %v", err)
+	}
+
+	q := &struct {
+		QuoteText   string `json: "quoteTxt"`
+		QuoteAuthor string `json: "quoteAuthor"`
+	}{}
+	if err := json.Unmarshal(body, q); err != nil {
+		return nil, fmt.Errorf("Failed to parse response json %q: %v", string(body), err)
+	}
+
+	returnMsg, err := s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("%q - %s", q.QuoteText, q.QuoteAuthor))
+	if err != nil {
+		return nil, fmt.Errorf("Failed to send message to the channal %q: %v", m.ChannelID, err)
+	}
+	if loggerOk {
+		l.Infof("Sending quote %q", q.QuoteText)
+	}
+	return returnMsg, nil
 }
 
 func configCommand(ctx context.Context, s *discordgo.Session, m *discordgo.MessageCreate, _ []string) (*discordgo.Message, error) {
@@ -189,17 +241,17 @@ func aliasCommand(ctx context.Context, s *discordgo.Session, m *discordgo.Messag
 	case len(c) == 1:
 		returnMsg, _ := s.ChannelMessageSendEmbed(m.ChannelID, &discordgo.MessageEmbed{
 			Color: 0,
-	
+
 			Fields: func() []*discordgo.MessageEmbedField {
 				var out []*discordgo.MessageEmbedField
-	
+
 				for name, c := range aliasMap {
 					out = append(out, &discordgo.MessageEmbedField{
 						Name:  name,
 						Value: c.help,
 					})
 				}
-	
+
 				return out
 			}(),
 		})
@@ -218,7 +270,7 @@ func aliasCommand(ctx context.Context, s *discordgo.Session, m *discordgo.Messag
 		return returnMsg, nil
 	}
 
-	_, ok1 := aliasMap[c[1]];
+	_, ok1 := aliasMap[c[1]]
 	if _, ok := commMap[c[1]]; ok1 || ok {
 		// If key already exists and who's function is not printShortcut OR is not the "help" command
 		returnMsg, _ := s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("%s is a registered command/alias and cannot be set as an alias.", c[1]))
