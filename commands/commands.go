@@ -3,6 +3,7 @@ package commands
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
@@ -12,8 +13,6 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
-	"net/http"
-	"errors"
 
 	"github.com/Necroforger/dgwidgets"
 	"github.com/UCCNetworkingSociety/Netsoc-Discord-Bot/config"
@@ -243,8 +242,8 @@ func aliasCommand(ctx context.Context, s *discordgo.Session, m *discordgo.Messag
 		p := dgwidgets.NewPaginator(s, m.ChannelID)
 		p.Add(&discordgo.MessageEmbed{
 			Color: 0,
-	
-			Fields: []*discordgo.MessageEmbedField {
+
+			Fields: []*discordgo.MessageEmbedField{
 				{
 					Name: "Aliases",
 					Value: func() string {
@@ -260,7 +259,7 @@ func aliasCommand(ctx context.Context, s *discordgo.Session, m *discordgo.Messag
 
 		for aliasName, alias := range aliasMap {
 			embed := &discordgo.MessageEmbed{
-				Title: aliasName, 
+				Title:       aliasName,
 				Description: alias.help,
 			}
 
@@ -268,10 +267,10 @@ func aliasCommand(ctx context.Context, s *discordgo.Session, m *discordgo.Messag
 			if err != nil {
 				p.Add(embed)
 				continue
-			}else{
+			} else {
 				content := strings.TrimPrefix(resp.Header.Get("Content-Type"), "image/")
 				if content == "gif" || content == "jpeg" || content == "png" {
-					embed.Image = &discordgo.MessageEmbedImage {
+					embed.Image = &discordgo.MessageEmbedImage{
 						URL: alias.help,
 					}
 				}
