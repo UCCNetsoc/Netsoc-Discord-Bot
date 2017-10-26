@@ -99,7 +99,7 @@ func init() {
 }
 
 // inspireCommand gets an inspirational quote from forismatic.com
-func inspireCommand(ctx context.Context, s *discordgo.Session, m *discordgo.MessageCreate, _ []string) (*discordgo.Message, error) {
+func inspireCommand(ctx context.Context, s *discordgo.Session, m *discordgo.MessageCreate, _ []string) error {
 	l, loggerOk := logging.FromContext(ctx)
 	if loggerOk {
 		l.Infof("Responding to inspire command", nil)
@@ -113,13 +113,13 @@ func inspireCommand(ctx context.Context, s *discordgo.Session, m *discordgo.Mess
 			"lang":   {"en"},
 		})
 	if err != nil {
-		return nil, fmt.Errorf("Failed to get the quote from API: %v", err)
+		return fmt.Errorf("Failed to get the quote from API: %v", err)
 	}
 	defer resp.Body.Close()
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to read the response body: %v", err)
+		return fmt.Errorf("Failed to read the response body: %v", err)
 	}
 
 	q := &struct {
@@ -127,17 +127,17 @@ func inspireCommand(ctx context.Context, s *discordgo.Session, m *discordgo.Mess
 		QuoteAuthor string `json: "quoteAuthor"`
 	}{}
 	if err := json.Unmarshal(body, q); err != nil {
-		return nil, fmt.Errorf("Failed to parse response json %q: %v", string(body), err)
+		return fmt.Errorf("Failed to parse response json %q: %v", string(body), err)
 	}
 
-	returnMsg, err := s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("%q - %s", q.QuoteText, q.QuoteAuthor))
+	_, err = s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("%q - %s", q.QuoteText, q.QuoteAuthor))
 	if err != nil {
-		return nil, fmt.Errorf("Failed to send message to the channal %q: %v", m.ChannelID, err)
+		return fmt.Errorf("Failed to send message to the channal %q: %v", m.ChannelID, err)
 	}
 	if loggerOk {
 		l.Infof("Sending quote %q", q.QuoteText)
 	}
-	return returnMsg, nil
+	return nil
 }
 
 func configCommand(ctx context.Context, s *discordgo.Session, m *discordgo.MessageCreate, _ []string) error {
