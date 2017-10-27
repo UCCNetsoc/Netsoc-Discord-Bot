@@ -130,8 +130,7 @@ func inspireCommand(ctx context.Context, s *discordgo.Session, m *discordgo.Mess
 		return fmt.Errorf("Failed to parse response json %q: %v", string(body), err)
 	}
 
-	_, err = s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("%q - %s", q.QuoteText, q.QuoteAuthor))
-	if err != nil {
+	if _, err = s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("%q - %s", q.QuoteText, q.QuoteAuthor)); err != nil {
 		return fmt.Errorf("Failed to send message to the channal %q: %v", m.ChannelID, err)
 	}
 	if loggerOk {
@@ -148,7 +147,9 @@ func configCommand(ctx context.Context, s *discordgo.Session, m *discordgo.Messa
 
 	// Ensure user has permission to use this command
 	if !IsAllowed(ctx, s, m.Author.ID, "config") {
-		s.ChannelMessageSend(m.ChannelID, "You do not have permissions to use this command.")
+		if _, err := s.ChannelMessageSend(m.ChannelID, "You do not have permissions to use this command."); err != nil {
+			return fmt.Errorf("Failed to send message to the channal %q: %v", m.ChannelID, err)
+		}
 		if loggerOk {
 			l.Infof("%q is not allowed to execute the config command", m.Author)
 		}
@@ -158,13 +159,15 @@ func configCommand(ctx context.Context, s *discordgo.Session, m *discordgo.Messa
 	tmpconf := &config.Config{}
 	deepcopier.Copy(config.GetConfig()).To(tmpconf)
 
-	s.ChannelMessageSendEmbed(m.ChannelID, &discordgo.MessageEmbed{
+	if _, err := s.ChannelMessageSendEmbed(m.ChannelID, &discordgo.MessageEmbed{
 		Color: 0,
 
 		Fields: []*discordgo.MessageEmbedField{
 			{Name: "Config:", Value: tmpconf.String(), Inline: true},
 		},
-	})
+	}); err != nil {
+		return fmt.Errorf("Failed to send message to the channal %q: %v", m.ChannelID, err)
+	}
 
 	return nil
 }
@@ -173,7 +176,7 @@ func infoCommand(ctx context.Context, s *discordgo.Session, m *discordgo.Message
 	var mem runtime.MemStats
 	runtime.ReadMemStats(&mem)
 
-	s.ChannelMessageSendEmbed(m.ChannelID, &discordgo.MessageEmbed{
+	if _, err := s.ChannelMessageSendEmbed(m.ChannelID, &discordgo.MessageEmbed{
 		Color: 0,
 
 		Fields: []*discordgo.MessageEmbedField{
@@ -182,7 +185,9 @@ func infoCommand(ctx context.Context, s *discordgo.Session, m *discordgo.Message
 			{Name: "Go Version:", Value: "```" + runtime.Version() + "```", Inline: true},
 			{Name: "Usable Cores:", Value: "```" + strconv.Itoa(runtime.NumCPU()) + "```", Inline: true},
 		},
-	})
+	}); err != nil {
+		return fmt.Errorf("Failed to send message to the channal %q: %v", m.ChannelID, err)
+	}
 
 	return nil
 }
@@ -200,7 +205,9 @@ func sensorsCommand(ctx context.Context, s *discordgo.Session, m *discordgo.Mess
 		return err
 	}
 
-	s.ChannelMessageSend(m.ChannelID, "```"+string(stdout)+"```")
+	if _, err := s.ChannelMessageSend(m.ChannelID, "```"+string(stdout)+"```"); err != nil {
+		return fmt.Errorf("Failed to send message to the channal %q: %v", m.ChannelID, err)
+	}
 
 	return nil
 }
@@ -218,7 +225,9 @@ func topCommand(ctx context.Context, s *discordgo.Session, m *discordgo.MessageC
 		return err
 	}
 
-	s.ChannelMessageSend(m.ChannelID, "```"+string(stdout[:1994])+"```")
+	if _, err := s.ChannelMessageSend(m.ChannelID, "```"+string(stdout[:1994])+"```"); err != nil {
+		return fmt.Errorf("Failed to send message to the channal %q: %v", m.ChannelID, err)
+	}
 
 	return nil
 }
@@ -226,7 +235,9 @@ func topCommand(ctx context.Context, s *discordgo.Session, m *discordgo.MessageC
 // pingCommand is a basic command which will responds "Pong!" to any ping.
 func pingCommand(ctx context.Context, s *discordgo.Session, m *discordgo.MessageCreate, _ []string) error {
 	l, ok := logging.FromContext(ctx)
-	s.ChannelMessageSend(m.ChannelID, "Pong!")
+	if _, err := s.ChannelMessageSend(m.ChannelID, "Pong!"); err != nil {
+		return fmt.Errorf("Failed to send message to the channal %q: %v", m.ChannelID, err)
+	}
 	if ok {
 		l.Infof("Responding 'Pong!' to ping command")
 	}
@@ -288,13 +299,17 @@ func aliasCommand(ctx context.Context, s *discordgo.Session, m *discordgo.Messag
 
 		return nil
 	case len(c) == 2:
-		s.ChannelMessageSend(m.ChannelID, "Too few arguments supplied. Refer to !help for usage.")
+		if _, err := s.ChannelMessageSend(m.ChannelID, "Too few arguments supplied. Refer to !help for usage."); err != nil {
+			return fmt.Errorf("Failed to send message to the channal %q: %v", m.ChannelID, err)
+		}
 		return errors.New("Too few arguments supplied for set command")
 	}
 
 	// Ensure user has permission to use this command
 	if !IsAllowed(ctx, s, m.Author.ID, "alias") {
-		s.ChannelMessageSend(m.ChannelID, "You do not have permissions to use this command.")
+		if _, err := s.ChannelMessageSend(m.ChannelID, "You do not have permissions to use this command."); err != nil {
+			return fmt.Errorf("Failed to send message to the channal %q: %v", m.ChannelID, err)
+		}
 		if loggerOk {
 			l.Infof("%q is not allowed to execute the alias command", m.Author)
 		}
@@ -304,7 +319,9 @@ func aliasCommand(ctx context.Context, s *discordgo.Session, m *discordgo.Messag
 	_, ok1 := aliasMap[c[1]]
 	if _, ok := commMap[c[1]]; ok1 || ok {
 		// If key already exists
-		s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("%s is a registered command/alias and cannot be set as an alias.", c[1]))
+		if _, err := s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("%s is a registered command/alias and cannot be set as an alias.", c[1])); err != nil {
+			return fmt.Errorf("Failed to send message to the channal %q: %v", m.ChannelID, err)
+		}
 		if loggerOk {
 			l.Infof("%s attempted to overwrite command %s with %s", m.Author, c[1], strings.Join(c[2:], " "))
 		}
@@ -320,7 +337,9 @@ func aliasCommand(ctx context.Context, s *discordgo.Session, m *discordgo.Messag
 	savedAliases[c[1]] = strings.Join(c[2:], " ")
 	if err := WriteToStorage("./storage/aliases.json", savedAliases); err != nil {
 		l.Errorf("Error writing alias to file")
-		s.ChannelMessageSend(m.ChannelID, "Error writing alias to file.")
+		if _, err := s.ChannelMessageSend(m.ChannelID, "Error writing alias to file."); err != nil {
+			return fmt.Errorf("Failed to send message to the channal %q: %v", m.ChannelID, err)
+		}
 		return err
 	}
 
@@ -328,7 +347,9 @@ func aliasCommand(ctx context.Context, s *discordgo.Session, m *discordgo.Messag
 		l.Infof("%s has set an alias for %s => %s", m.Author, c[1], strings.Join(c[2:], " "))
 	}
 
-	s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("%s has set an alias for %s => %s", m.Author, c[1], strings.Join(c[2:], " ")))
+	if _, err := s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("%s has set an alias for %s => %s", m.Author, c[1], strings.Join(c[2:], " "))); err != nil {
+		return fmt.Errorf("Failed to send message to the channal %q: %v", m.ChannelID, err)
+	}
 
 	return nil
 }
@@ -341,21 +362,25 @@ func showHelpCommand(ctx context.Context, s *discordgo.Session, m *discordgo.Mes
 
 	if len(msg) == 2 {
 		if c, ok := commMap[msg[1]]; ok {
-			s.ChannelMessageSendEmbed(m.ChannelID, &discordgo.MessageEmbed{
+			if _, err := s.ChannelMessageSendEmbed(m.ChannelID, &discordgo.MessageEmbed{
 				Color: 0,
 
 				Fields: []*discordgo.MessageEmbedField{
 					{Name: msg[1], Value: c.help},
 				},
-			})
+			}); err != nil {
+				return fmt.Errorf("Failed to send message to the channal %q: %v", m.ChannelID, err)
+			}
 			return nil
 		}
 
-		s.ChannelMessageSend(m.ChannelID, "Command not found.")
+		if _, err := s.ChannelMessageSend(m.ChannelID, "Command not found."); err != nil {
+			return fmt.Errorf("Failed to send message to the channal %q: %v", m.ChannelID, err)
+		}
 		return nil
 	}
 
-	s.ChannelMessageSendEmbed(m.ChannelID, &discordgo.MessageEmbed{
+	if _, err := s.ChannelMessageSendEmbed(m.ChannelID, &discordgo.MessageEmbed{
 		Color: 0,
 
 		Fields: func() []*discordgo.MessageEmbedField {
@@ -370,7 +395,9 @@ func showHelpCommand(ctx context.Context, s *discordgo.Session, m *discordgo.Mes
 
 			return out
 		}(),
-	})
+	}); err != nil {
+		return fmt.Errorf("Failed to send message to the channal %q: %v", m.ChannelID, err)
+	}
 	return nil
 }
 
@@ -384,7 +411,9 @@ func Execute(ctx context.Context, s *discordgo.Session, m *discordgo.MessageCrea
 		}
 		return nil
 	} else if val, ok := aliasMap[args[0]]; ok {
-		s.ChannelMessageSend(m.ChannelID, val.help)
+		if _, err := s.ChannelMessageSend(m.ChannelID, val.help); err != nil {
+			return fmt.Errorf("Failed to send message to the channal %q: %v", m.ChannelID, err)
+		}
 		return nil
 	}
 	return fmt.Errorf("Failed to recognise the command %q", args[0])
