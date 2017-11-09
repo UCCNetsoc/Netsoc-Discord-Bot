@@ -296,6 +296,7 @@ func aliasCommand(ctx context.Context, s *discordgo.Session, m *discordgo.Messag
 		p.ColourWhenDone = 0xFF0000
 		p.DeleteReactionsWhenDone = true
 		p.Spawn()
+		p.Widget.Timeout = time.Minute * 5
 
 		return nil
 	case len(c) == 2:
