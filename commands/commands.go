@@ -13,6 +13,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/Necroforger/dgwidgets"
 	"github.com/UCCNetworkingSociety/Netsoc-Discord-Bot/config"
