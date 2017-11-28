@@ -159,11 +159,11 @@ func minecraftCommand(ctx context.Context, s *discordgo.Session, m *discordgo.Me
 	msg += "```"
 
 	// Attempt to send the message to the discord
-	if _, err = s.ChannelMessageSend(m.ChannelID, msg); err != nil {
+	if _, err := s.ChannelMessageSend(m.ChannelID, msg); err != nil {
 		return fmt.Errorf("Failed to send message to the channal %q: %v", m.ChannelID, err)
 	}
 	if loggerOk {
-		l.Infof("Sending minecraft information", msg)
+		l.Infof("Sending minecraft information: %s", msg)
 	}
 	return nil
 }
