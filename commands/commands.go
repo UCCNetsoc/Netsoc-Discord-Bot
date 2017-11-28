@@ -97,6 +97,75 @@ func init() {
 		help: "Gives an inspirational quote",
 		exec: inspireCommand,
 	}
+
+	commMap["minecraft"] = &command{
+		help: "Check to see who is currently online on the NetsocCraft server",
+		exec: minecraftCommand,
+	}
+}
+
+// minecraftCommand checks the stats of minecraft.netsoc.co for that moment
+// data comes from http://minecraft.netsoc.co/standalone/dynmap_NetsocCraft.json
+
+func minecraftCommand(ctx context.Context, s *discordgo.Session, m *discordgo.MessageCreate, _ []string) error {
+	l, loggerOk := logging.FromContext(ctx)
+	if loggerOk {
+		l.Infof("Responding to minecraft command", nil)
+	}
+
+	resp, err := http.Get("http://minecraft.netsoc.co/standalone/dynmap_NetsocCraft.json")
+
+	if err != nil {
+		return fmt.Errorf("Failed to retrieve data from the Minecraft Server: %v", err)
+	}
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("Failed to read the response body: %v", err)
+	}
+
+	// Unmarshal the data and get all the player lists I guess
+	q := &struct {
+		CurrentCount   int     `json:"currentcount"`
+		HasStorm       bool    `json:"hasStorm"`
+		IsThundering   bool    `json:"isThundering"`
+		ConfigHash     int     `json:"confighash"`
+		ServerTime     int     `json:"servertime"`
+		TimeStamp      int     `json:"timestamp"`
+		Players        []struct {
+			// Players nested JSON structure
+			World      string  `json:"world"`
+			Armour     int     `json:"armor"`
+			Name       string  `json:"name"`
+			X          float64 `json:"x"`
+			Y          float64 `json:"y"`
+			Z          float64 `json:"z"`
+			Sort       int     `json:"sort"`
+			Type       string  `json:"type"`
+			Account    string  `json:"account"`
+		} `json:"players"`
+		Updates        []interface{} `json:"updates"`
+	}{}
+
+	if err := json.Unmarshal(body, q); err != nil {
+		return fmt.Errorf("Failed to parse response json %q: %v", string(body), err)
+	}
+
+	// Create a discord message containing a list of all the players currently online
+	msg := "```markdown\n"
+	for i, player := range q.Players {
+		msg += fmt.Sprintf("%d. %s\n", i+1, player.Name)
+	}
+	msg += "```"
+
+	// Attempt to send the message to the discord
+	if _, err := s.ChannelMessageSend(m.ChannelID, msg); err != nil {
+		return fmt.Errorf("Failed to send message to the channal %q: %v", m.ChannelID, err)
+	}
+	if loggerOk {
+		l.Infof("Sending minecraft information: %s", msg)
+	}
+	return nil
 }
 
 // inspireCommand gets an inspirational quote from forismatic.com
