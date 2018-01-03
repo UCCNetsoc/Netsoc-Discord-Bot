@@ -106,11 +106,10 @@ func init() {
 
 // minecraftCommand checks the stats of minecraft.netsoc.co for that moment
 // data comes from http://minecraft.netsoc.co/standalone/dynmap_NetsocCraft.json
-
 func minecraftCommand(ctx context.Context, s *discordgo.Session, m *discordgo.MessageCreate, _ []string) error {
 	l, loggerOk := logging.FromContext(ctx)
 	if loggerOk {
-		l.Infof("Responding to minecraft command", nil)
+		l.Infof("Responding to minecraft command")
 	}
 
 	resp, err := http.Get("http://minecraft.netsoc.co/standalone/dynmap_NetsocCraft.json")
@@ -126,25 +125,25 @@ func minecraftCommand(ctx context.Context, s *discordgo.Session, m *discordgo.Me
 
 	// Unmarshal the data and get all the player lists I guess
 	q := &struct {
-		CurrentCount   int     `json:"currentcount"`
-		HasStorm       bool    `json:"hasStorm"`
-		IsThundering   bool    `json:"isThundering"`
-		ConfigHash     int     `json:"confighash"`
-		ServerTime     int     `json:"servertime"`
-		TimeStamp      int     `json:"timestamp"`
-		Players        []struct {
+		CurrentCount int  `json:"currentcount"`
+		HasStorm     bool `json:"hasStorm"`
+		IsThundering bool `json:"isThundering"`
+		ConfigHash   int  `json:"confighash"`
+		ServerTime   int  `json:"servertime"`
+		TimeStamp    int  `json:"timestamp"`
+		Players      []struct {
 			// Players nested JSON structure
-			World      string  `json:"world"`
-			Armour     int     `json:"armor"`
-			Name       string  `json:"name"`
-			X          float64 `json:"x"`
-			Y          float64 `json:"y"`
-			Z          float64 `json:"z"`
-			Sort       int     `json:"sort"`
-			Type       string  `json:"type"`
-			Account    string  `json:"account"`
+			World   string  `json:"world"`
+			Armour  int     `json:"armor"`
+			Name    string  `json:"name"`
+			X       float64 `json:"x"`
+			Y       float64 `json:"y"`
+			Z       float64 `json:"z"`
+			Sort    int     `json:"sort"`
+			Type    string  `json:"type"`
+			Account string  `json:"account"`
 		} `json:"players"`
-		Updates        []interface{} `json:"updates"`
+		Updates []interface{} `json:"updates"`
 	}{}
 
 	if err := json.Unmarshal(body, q); err != nil {
@@ -152,18 +151,23 @@ func minecraftCommand(ctx context.Context, s *discordgo.Session, m *discordgo.Me
 	}
 
 	// Create a discord message containing a list of all the players currently online
-	msg := "```markdown\n"
-	for i, player := range q.Players {
-		msg += fmt.Sprintf("%d. %s\n", i+1, player.Name)
+	var msg string
+	if len(q.Players) == 0 {
+		msg = "Nobody home :("
+	} else {
+		msg = "```markdown\n"
+		for i, player := range q.Players {
+			msg += fmt.Sprintf("%d. %s\n", i+1, player.Name)
+		}
+		msg += "```"
 	}
-	msg += "```"
 
 	// Attempt to send the message to the discord
 	if _, err := s.ChannelMessageSend(m.ChannelID, msg); err != nil {
 		return fmt.Errorf("Failed to send message to the channal %q: %v", m.ChannelID, err)
 	}
 	if loggerOk {
-		l.Infof("Sending minecraft information: %s", msg)
+		l.Infof("Sending minecraft information: %d users active", len(q.Players))
 	}
 	return nil
 }
