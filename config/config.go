@@ -12,7 +12,7 @@ import (
 var (
 	// Set defaults for the config to ensure it works
 	// or warns even if a particular setting is missing
-	conf *Config
+	conf = new(Config)
 )
 
 // Config represetns the bot configuration loaded from the JSON
@@ -53,39 +53,14 @@ type LogFiles struct {
 
 // String prints a string representation of the config
 func (c Config) String() string {
+	c.Token = "no see :("
 	conf, _ := json.MarshalIndent(c, "", "  ")
 	return fmt.Sprintf("%s", conf)
 }
 
 func init() {
 	conf = &Config{
-		Prefix:          "!",
-		Token:           "warn",
-		HelpChannelID:   "warn",
-		AlertsChannelID: "warn",
-		BotHostName:     "0.0.0.0:4201",
-		GuildID:         "291573897730588684",
-		SysAdminTag:     "<@&318907623476822016>",
-		LogFiles: LogFiles{
-			InfoLog:  "info.log",
-			ErrorLog: "error.log",
-		},
-		Permissions: map[string][]string{
-			"alias": []string{
-				"Chairperson",
-				"Equipments Officer",
-				"Events Officer",
-				"Finance Officer",
-				"HLM",
-				"PRO",
-				"Secretary",
-				"SysAdmin",
-			},
-			"config": []string{
-				"SysAdmin",
-				"HLM",
-			},
-		},
+		Permissions: map[string][]string{},
 	}
 }
 
@@ -100,11 +75,10 @@ func LoadConfig() error {
 		return errors.New("Configuration file 'config.json' was empty")
 	}
 
-	tmpconf := &Config{}
+	tmpconf := new(Config)
 	if err := json.Unmarshal(file, tmpconf); err != nil {
 		return fmt.Errorf("Failed to unmarshal configuration JSON: %s", err)
 	}
-
 	if err := mergo.MergeWithOverwrite(conf, tmpconf); err != nil {
 		return fmt.Errorf("Failed to merge configuration values: %#v", err)
 	}

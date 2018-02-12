@@ -123,7 +123,7 @@ type alert struct {
 
 func alertHandler(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
-	
+
 	var resp alertsBody
 	err := json.NewDecoder(r.Body).Decode(&resp)
 	if err != nil {
