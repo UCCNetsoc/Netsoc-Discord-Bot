@@ -20,11 +20,11 @@ type Logger struct {
 // conextKey is the type for the key for which loggers will be associated with
 // within a context. It is unexported to prevent collisions with other
 // context keys.
-type conextKey int
+type contextKey int
 
 // loggerContextKey is the key-value to which loggers will be associated with
 // within a context.
-const loggerContextKey conextKey = 0
+const loggerContextKey contextKey = 0
 
 // New creates a new logger which logs to the given log file.
 // Note: you must defer a call to the logger's "Close" method.

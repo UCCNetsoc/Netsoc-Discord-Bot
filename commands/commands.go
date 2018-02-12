@@ -19,7 +19,6 @@ import (
 	"github.com/UCCNetworkingSociety/Netsoc-Discord-Bot/config"
 	"github.com/UCCNetworkingSociety/Netsoc-Discord-Bot/logging"
 	"github.com/bwmarrin/discordgo"
-	"github.com/ulule/deepcopier"
 )
 
 var (
@@ -230,14 +229,11 @@ func configCommand(ctx context.Context, s *discordgo.Session, m *discordgo.Messa
 		return nil
 	}
 
-	tmpconf := &config.Config{}
-	deepcopier.Copy(config.GetConfig()).To(tmpconf)
-
 	if _, err := s.ChannelMessageSendEmbed(m.ChannelID, &discordgo.MessageEmbed{
 		Color: 0,
 
 		Fields: []*discordgo.MessageEmbedField{
-			{Name: "Config:", Value: tmpconf.String(), Inline: true},
+			{Name: "Config:", Value: config.GetConfig().String(), Inline: true},
 		},
 	}); err != nil {
 		return fmt.Errorf("Failed to send message to the channal %q: %v", m.ChannelID, err)

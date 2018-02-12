@@ -20,33 +20,33 @@ var (
 type Config struct {
 	// Prefix is the string that will prefix all commands
 	// which this not will listen for.
-	Prefix string `json:"prefix" deepcopier:"field:Prefix"`
+	Prefix string `json:"prefix"`
 	// Token is the Discord bot user token.
-	Token string `json:"token" deepcopier:"skip"`
+	Token string `json:"token"`
 	// HelpChannelID is the channel ID to which help messages from
 	// netsoc-admin will be sent.
-	HelpChannelID string `json:"helpChannelID" deepcopier:"field:HelpChannelID"`
+	HelpChannelID string `json:"helpChannelID"`
 	// BotHostName is the address which the bot can be reached at
 	// over the internet. This is used by netsocadmin to reach the
 	// '/help' endpoint.
-	BotHostName string `json:"botHostName" deepcopier:"field:BotHostName"`
+	BotHostName string `json:"botHostName"`
 	// SysAdminTag is the tag which, when included in a discord message,
 	// will result in a notification being sent to all SysAdmins so they
 	// can be notified of the help message.
-	GuildID     string `json:"guildID" deepcopier:"field:GuildID"`
-	SysAdminTag string `json:"sysAdminTag" deepcopier:"field:SysAdminTag"`
+	GuildID     string `json:"guildID"`
+	SysAdminTag string `json:"sysAdminTag"`
 
 	// LogFiles dictate where our logs are stored
-	LogFiles *LogFiles `json:"logFiles" deepcopier:"field:LogFiles"`
+	LogFiles LogFiles `json:"logFiles"`
 
 	// Defines which roles can execute commands (if applicable)
-	Permissions map[string][]string `json:"permissions" deepcopier:"field:Permissions"`
+	Permissions map[string][]string `json:"permissions"`
 }
 
 // LogFiles dictate the files/paths of the log files
 type LogFiles struct {
-	InfoLog  string `json:"info_log" deepcopier:"field:InfoLog"`
-	ErrorLog string `json:"error_log" deepcopier:"field:ErrorLog"`
+	InfoLog  string `json:"info_log"`
+	ErrorLog string `json:"error_log"`
 }
 
 // String prints a string representation of the config
@@ -63,7 +63,7 @@ func init() {
 		BotHostName:   "0.0.0.0:4201",
 		GuildID:       "291573897730588684",
 		SysAdminTag:   "<@&318907623476822016>",
-		LogFiles: &LogFiles{
+		LogFiles: LogFiles{
 			InfoLog:  "info.log",
 			ErrorLog: "error.log",
 		},
