@@ -61,6 +61,10 @@ func (c Config) String() string {
 func init() {
 	conf = &Config{
 		Permissions: map[string][]string{},
+		LogFiles: LogFiles{
+			InfoLog:  "info.log",
+			ErrorLog: "error.log",
+		},
 	}
 }
 
