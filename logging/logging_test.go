@@ -11,6 +11,7 @@ func TestNew(t *testing.T) {
 	if logger == nil || err != nil {
 		t.Errorf("Logger: %#v \n Err: %#v", logger, err)
 	}
+	logger.Close()
 }
 
 func TestFromContext(t *testing.T) {
