@@ -197,8 +197,8 @@ func inspireCommand(ctx context.Context, s *discordgo.Session, m *discordgo.Mess
 	}
 
 	q := &struct {
-		QuoteText   string `json: "quoteTxt"`
-		QuoteAuthor string `json: "quoteAuthor"`
+		QuoteText   string `json:"quoteTxt"`
+		QuoteAuthor string `json:"quoteAuthor"`
 	}{}
 	if err := json.Unmarshal(body, q); err != nil {
 		return nil, fmt.Errorf("Failed to parse response json %q: %v", string(body), err)
