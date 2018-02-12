@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -94,7 +93,7 @@ func help(w http.ResponseWriter, r *http.Request) {
 	var resp helpBody
 	err := json.NewDecoder(r.Body).Decode(&resp)
 	if err != nil {
-		l.Errorf("Failed to unmarshal request JSON %q: %s", bytes, err)
+		l.Errorf("Failed to unmarshal request JSON: %s", err)
 		dg.ChannelMessageSend(conf.HelpChannelID, "help request error, check logs")
 		return
 	}
@@ -128,7 +127,7 @@ func alertHandler(w http.ResponseWriter, r *http.Request) {
 	var resp alertsBody
 	err := json.NewDecoder(r.Body).Decode(&resp)
 	if err != nil {
-		l.Errorf("Failed to unmarshal request JSON %q: %s", bytes, err)
+		l.Errorf("Failed to unmarshal request JSON: %s", err)
 		dg.ChannelMessageSend(conf.AlertsChannelID, "alerts request error, check logs")
 		return
 	}
