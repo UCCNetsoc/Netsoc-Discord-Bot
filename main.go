@@ -75,8 +75,7 @@ func main() {
 	}
 
 	l.Infof("Watching config.json")
-	_, watcherErr = watchConfig(l)
-	if watcherErr != nil {
+	if _, watcherErr = watchConfig(l); watcherErr != nil {
 		// do something sensible
 		l.Errorf("%#v", watcherErr)
 	}
