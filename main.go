@@ -89,17 +89,10 @@ func main() {
 }
 
 func help(w http.ResponseWriter, r *http.Request) {
-	resp := &helpBody{}
-
-	bytes, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		l.Errorf("Failed to read request body: %s", err)
-		dg.ChannelMessageSend(conf.HelpChannelID, "help request error, check logs")
-		return
-	}
 	defer r.Body.Close()
 
-	err = json.Unmarshal(bytes, resp)
+	var resp helpBody
+	err := json.NewDecoder(r.Body).Decode(&resp)
 	if err != nil {
 		l.Errorf("Failed to unmarshal request JSON %q: %s", bytes, err)
 		dg.ChannelMessageSend(conf.HelpChannelID, "help request error, check logs")
@@ -130,16 +123,10 @@ type alert struct {
 }
 
 func alertHandler(w http.ResponseWriter, r *http.Request) {
-	bytes, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		l.Errorf("Failed to read request body: %s", err)
-		dg.ChannelMessageSend(conf.AlertsChannelID, "alert request error, check logs")
-		return
-	}
 	defer r.Body.Close()
-
-	resp := &alertsBody{}
-	err = json.Unmarshal(bytes, resp)
+	
+	var resp alertsBody
+	err := json.NewDecoder(r.Body).Decode(&resp)
 	if err != nil {
 		l.Errorf("Failed to unmarshal request JSON %q: %s", bytes, err)
 		dg.ChannelMessageSend(conf.AlertsChannelID, "alerts request error, check logs")
