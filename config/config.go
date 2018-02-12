@@ -26,6 +26,8 @@ type Config struct {
 	// HelpChannelID is the channel ID to which help messages from
 	// netsoc-admin will be sent.
 	HelpChannelID string `json:"helpChannelID"`
+	// AlertsChannelID is the channel ID to send alerts to
+	AlertsChannelID string `json:"alertsChannelID"`
 	// BotHostName is the address which the bot can be reached at
 	// over the internet. This is used by netsocadmin to reach the
 	// '/help' endpoint.
@@ -57,12 +59,13 @@ func (c Config) String() string {
 
 func init() {
 	conf = &Config{
-		Prefix:        "!",
-		Token:         "warn",
-		HelpChannelID: "warn",
-		BotHostName:   "0.0.0.0:4201",
-		GuildID:       "291573897730588684",
-		SysAdminTag:   "<@&318907623476822016>",
+		Prefix:          "!",
+		Token:           "warn",
+		HelpChannelID:   "warn",
+		AlertsChannelID: "warn",
+		BotHostName:     "0.0.0.0:4201",
+		GuildID:         "291573897730588684",
+		SysAdminTag:     "<@&318907623476822016>",
 		LogFiles: LogFiles{
 			InfoLog:  "info.log",
 			ErrorLog: "error.log",

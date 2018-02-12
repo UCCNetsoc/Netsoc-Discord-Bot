@@ -82,23 +82,17 @@ func main() {
 
 	l.Infof("Serving http server on %s", conf.BotHostName)
 	http.HandleFunc("/help", help)
+	http.HandleFunc("/alert", alertHandler)
 	if err := http.ListenAndServe(conf.BotHostName, nil); err != nil {
 		l.Errorf("Failed to serve HTTP: %s", err)
 	}
 }
 
 func help(w http.ResponseWriter, r *http.Request) {
-	resp := &helpBody{}
-
-	bytes, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		l.Errorf("Failed to read request body: %s", err)
-		dg.ChannelMessageSend(conf.HelpChannelID, "help request error, check logs")
-		return
-	}
 	defer r.Body.Close()
 
-	err = json.Unmarshal(bytes, resp)
+	var resp helpBody
+	err := json.NewDecoder(r.Body).Decode(&resp)
 	if err != nil {
 		l.Errorf("Failed to unmarshal request JSON %q: %s", bytes, err)
 		dg.ChannelMessageSend(conf.HelpChannelID, "help request error, check logs")
@@ -107,6 +101,43 @@ func help(w http.ResponseWriter, r *http.Request) {
 
 	msg := fmt.Sprintf("%s Help pls\n\n```From: %s\nEmail: %s\n\nSubject: %s\n\n%s```", conf.SysAdminTag, resp.User, resp.Email, resp.Subject, resp.Message)
 	dg.ChannelMessageSend(conf.HelpChannelID, msg)
+}
+
+type alertsBody struct {
+	Version           string            `json:"version"`
+	GroupKey          string            `json:"groupKey"`
+	Status            string            `json:"status"`
+	Receiver          string            `json:"receiver"`
+	GroupLabels       map[string]string `json:"groupLabels"`
+	CommonLabels      map[string]string `json:"commonLabels"`
+	CommonAnnotations map[string]string `json:"CommonAnnotations"`
+	ExternalURL       string            `json:"externalURL"`
+	Alerts            []alert           `json:"alerts"`
+}
+
+type alert struct {
+	Labels      map[string]string `json:"labels"`
+	Annotations map[string]string `json:"annotations"`
+	StartsAt    string            `json:"startsAt"`
+	EndsAt      string            `json:"endsAt"`
+}
+
+func alertHandler(w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close()
+	
+	var resp alertsBody
+	err := json.NewDecoder(r.Body).Decode(&resp)
+	if err != nil {
+		l.Errorf("Failed to unmarshal request JSON %q: %s", bytes, err)
+		dg.ChannelMessageSend(conf.AlertsChannelID, "alerts request error, check logs")
+		return
+	}
+
+	msg := fmt.Sprintf("%s Alerts are %s:", conf.SysAdminTag, resp.Status)
+	for _, a := range resp.Alerts {
+		msg += fmt.Sprintf("\n - %s", a.Annotations["summary"])
+	}
+	dg.ChannelMessageSend(conf.AlertsChannelID, msg)
 }
 
 // messageCreate is an event handler which is called whenever a new message
