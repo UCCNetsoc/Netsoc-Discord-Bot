@@ -9,7 +9,6 @@ import (
 	"math/rand"
 	"net/http"
 	"net/url"
-	"os/exec"
 	"runtime"
 	"strconv"
 	"strings"
@@ -70,16 +69,6 @@ func init() {
 	commMap[HelpCommand] = &command{
 		help: "If followed by a command name, it shows the details of the command",
 		exec: showHelpCommand,
-	}
-
-	commMap["top"] = &command{
-		help: "Prints the output of `top -b -n 1`",
-		exec: topCommand,
-	}
-
-	commMap["sensors"] = &command{
-		help: "Displays temperature of the server",
-		exec: sensorsCommand,
 	}
 
 	commMap["info"] = &command{
@@ -264,47 +253,6 @@ func infoCommand(ctx context.Context, s *discordgo.Session, m *discordgo.Message
 		return nil, fmt.Errorf("Failed to send message to the channal %q: %v", m.ChannelID, err)
 	}
 
-	return retMsg, nil
-}
-
-func sensorsCommand(ctx context.Context, s *discordgo.Session, m *discordgo.MessageCreate, _ []string) (*discordgo.Message, error) {
-	l, ok := logging.FromContext(ctx)
-	if ok {
-		l.Infof("Responding to top command")
-	}
-
-	cmd := exec.Command("sensors")
-	stdout, err := cmd.Output()
-	if err != nil {
-		l.Errorf("sensors command error %s", err)
-		return nil, err
-	}
-
-	retMsg, err := s.ChannelMessageSend(m.ChannelID, "```"+string(stdout)+"```")
-	if err != nil {
-		return nil, fmt.Errorf("Failed to send message to the channal %q: %v", m.ChannelID, err)
-	}
-
-	return retMsg, nil
-}
-
-func topCommand(ctx context.Context, s *discordgo.Session, m *discordgo.MessageCreate, _ []string) (*discordgo.Message, error) {
-	l, ok := logging.FromContext(ctx)
-	if ok {
-		l.Infof("Responding to top command")
-	}
-
-	cmd := exec.Command("top", "-b", "-n", "1")
-	stdout, err := cmd.Output()
-	if err != nil {
-		l.Errorf("top command error %s", err)
-		return nil, err
-	}
-
-	retMsg, err := s.ChannelMessageSend(m.ChannelID, "```"+string(stdout[:1994])+"```")
-	if err != nil {
-		return nil, fmt.Errorf("Failed to send message to the channal %q: %v", m.ChannelID, err)
-	}
 	return retMsg, nil
 }
 
