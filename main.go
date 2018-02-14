@@ -25,7 +25,19 @@ var (
 	dg   *discordgo.Session
 )
 
-// helpBody represents the help message which is sent from netsoc-admin.
+// handlerWithError wraps a regular http handler function. It cleans
+// up the logging and error response writing.
+type handlerWithError func(w http.ResponseWriter, r *http.Request) error
+
+// ServeHTTP implements the http.Handler interface
+func (h handlerWithError) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	uri := r.URL.RequestURI()
+	l.Infof("Received request for %q", uri)
+	if err := h(w, r); err != nil {
+		http.Error(w, err.Error(), 500)
+		l.Errorf("Failed to handle request for %q: %v", uri, err)
+	}
+}
 
 func main() {
 	if err := config.LoadConfig(); err != nil {
@@ -73,14 +85,15 @@ func main() {
 	}
 
 	l.Infof("Serving http server on %s", conf.BotHostName)
-	http.HandleFunc("/help", help)
-	http.HandleFunc("/alert", alertHandler)
+	http.Handle("/help", handlerWithError(help))
+	http.Handle("/alert", handlerWithError(alertHandler))
 	if err := http.ListenAndServe(conf.BotHostName, nil); err != nil {
 		l.Errorf("Failed to serve HTTP: %s", err)
 	}
 }
 
-func help(w http.ResponseWriter, r *http.Request) {
+// help sends a help message to the help discord channel
+func help(w http.ResponseWriter, r *http.Request) error {
 	defer r.Body.Close()
 
 	var resp struct {
@@ -90,16 +103,22 @@ func help(w http.ResponseWriter, r *http.Request) {
 		Message string `json:"message"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&resp); err != nil {
-		l.Errorf("Failed to unmarshal request JSON: %s", err)
-		dg.ChannelMessageSend(conf.HelpChannelID, "help request error, check logs")
-		return
+		err = fmt.Errorf("Failed to unmarshal request JSON: %s", err)
+		if _, dgErr := dg.ChannelMessageSend(conf.HelpChannelID, fmt.Sprintf("help request error: %v", err)); dgErr != nil {
+			return fmt.Errorf("failed to send failure notice to discord (%v): %v", err, dgErr)
+		}
+		return err
 	}
 
 	msg := fmt.Sprintf("%s Help pls\n\n```From: %s\nEmail: %s\n\nSubject: %s\n\n%s```", conf.SysAdminTag, resp.User, resp.Email, resp.Subject, resp.Message)
-	dg.ChannelMessageSend(conf.HelpChannelID, msg)
+	if _, err := dg.ChannelMessageSend(conf.HelpChannelID, msg); err != nil {
+		return fmt.Errorf("Failed to send help request to discord: %v", err)
+	}
+	return nil
 }
 
-func alertHandler(w http.ResponseWriter, r *http.Request) {
+// alertHandler relays a prometheus alert to the alerting channel
+func alertHandler(w http.ResponseWriter, r *http.Request) error {
 	defer r.Body.Close()
 
 	var resp struct {
@@ -119,16 +138,21 @@ func alertHandler(w http.ResponseWriter, r *http.Request) {
 		} `json:"alerts"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&resp); err != nil {
-		l.Errorf("Failed to unmarshal request JSON: %s", err)
-		dg.ChannelMessageSend(conf.AlertsChannelID, "alerts request error, check logs")
-		return
+		err = fmt.Errorf("Failed to unmarshal request JSON: %s", err)
+		if _, dgErr := dg.ChannelMessageSend(conf.AlertsChannelID, fmt.Sprintf("alerts request error: %v", err)); dgErr != nil {
+			return fmt.Errorf("failed to send failure notice to discord (%v): %v", err, dgErr)
+		}
+		return err
 	}
 
 	msg := fmt.Sprintf("%s Alerts are %s:", conf.SysAdminTag, resp.Status)
 	for _, a := range resp.Alerts {
 		msg += fmt.Sprintf("\n - %s", a.Annotations["summary"])
 	}
-	dg.ChannelMessageSend(conf.AlertsChannelID, msg)
+	if _, err := dg.ChannelMessageSend(conf.AlertsChannelID, msg); err != nil {
+		return fmt.Errorf("failed to send alert to discord: %v", err)
+	}
+	return nil
 }
 
 // messageCreate is an event handler which is called whenever a new message
