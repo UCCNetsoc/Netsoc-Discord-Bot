@@ -26,12 +26,6 @@ var (
 )
 
 // helpBody represents the help message which is sent from netsoc-admin.
-type helpBody struct {
-	User    string `json:"user"`
-	Email   string `json:"email"`
-	Subject string `json:"subject"`
-	Message string `json:"message"`
-}
 
 func main() {
 	if err := config.LoadConfig(); err != nil {
@@ -62,21 +56,20 @@ func main() {
 	defer dg.Close()
 
 	if err := dg.UpdateStatus(0, conf.Prefix+commands.HelpCommand); err != nil {
-		l.Errorf("Failed to set bot's status")
+		l.Errorf("Failed to set bot's status: %v", err)
 		return
 	}
 	l.Infof("Bot successfully started")
 
-	_, watcherErr := watchSelf(l)
-	if watcherErr != nil {
-		// do something sensible
-		l.Errorf("%#v", watcherErr)
+	if _, err := watchSelf(l); err != nil {
+		l.Errorf("Failed to create self-binary watcher: %v", err)
+		return
 	}
 
 	l.Infof("Watching config.json")
-	if _, watcherErr = watchConfig(l); watcherErr != nil {
-		// do something sensible
-		l.Errorf("%#v", watcherErr)
+	if _, err := watchConfig(l); err != nil {
+		l.Errorf("Failed to create configuration file watcher: %v", err)
+		return
 	}
 
 	l.Infof("Serving http server on %s", conf.BotHostName)
@@ -90,9 +83,13 @@ func main() {
 func help(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
-	var resp helpBody
-	err := json.NewDecoder(r.Body).Decode(&resp)
-	if err != nil {
+	var resp struct {
+		User    string `json:"user"`
+		Email   string `json:"email"`
+		Subject string `json:"subject"`
+		Message string `json:"message"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&resp); err != nil {
 		l.Errorf("Failed to unmarshal request JSON: %s", err)
 		dg.ChannelMessageSend(conf.HelpChannelID, "help request error, check logs")
 		return
@@ -102,31 +99,26 @@ func help(w http.ResponseWriter, r *http.Request) {
 	dg.ChannelMessageSend(conf.HelpChannelID, msg)
 }
 
-type alertsBody struct {
-	Version           string            `json:"version"`
-	GroupKey          string            `json:"groupKey"`
-	Status            string            `json:"status"`
-	Receiver          string            `json:"receiver"`
-	GroupLabels       map[string]string `json:"groupLabels"`
-	CommonLabels      map[string]string `json:"commonLabels"`
-	CommonAnnotations map[string]string `json:"CommonAnnotations"`
-	ExternalURL       string            `json:"externalURL"`
-	Alerts            []alert           `json:"alerts"`
-}
-
-type alert struct {
-	Labels      map[string]string `json:"labels"`
-	Annotations map[string]string `json:"annotations"`
-	StartsAt    string            `json:"startsAt"`
-	EndsAt      string            `json:"endsAt"`
-}
-
 func alertHandler(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
-	var resp alertsBody
-	err := json.NewDecoder(r.Body).Decode(&resp)
-	if err != nil {
+	var resp struct {
+		Version           string            `json:"version"`
+		GroupKey          string            `json:"groupKey"`
+		Status            string            `json:"status"`
+		Receiver          string            `json:"receiver"`
+		GroupLabels       map[string]string `json:"groupLabels"`
+		CommonLabels      map[string]string `json:"commonLabels"`
+		CommonAnnotations map[string]string `json:"CommonAnnotations"`
+		ExternalURL       string            `json:"externalURL"`
+		Alerts            []struct {
+			Labels      map[string]string `json:"labels"`
+			Annotations map[string]string `json:"annotations"`
+			StartsAt    string            `json:"startsAt"`
+			EndsAt      string            `json:"endsAt"`
+		} `json:"alerts"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&resp); err != nil {
 		l.Errorf("Failed to unmarshal request JSON: %s", err)
 		dg.ChannelMessageSend(conf.AlertsChannelID, "alerts request error, check logs")
 		return
