@@ -122,19 +122,9 @@ func alertHandler(w http.ResponseWriter, r *http.Request) error {
 	defer r.Body.Close()
 
 	var resp struct {
-		Version           string            `json:"version"`
-		GroupKey          string            `json:"groupKey"`
-		Status            string            `json:"status"`
-		Receiver          string            `json:"receiver"`
-		GroupLabels       map[string]string `json:"groupLabels"`
-		CommonLabels      map[string]string `json:"commonLabels"`
-		CommonAnnotations map[string]string `json:"CommonAnnotations"`
-		ExternalURL       string            `json:"externalURL"`
-		Alerts            []struct {
-			Labels      map[string]string `json:"labels"`
+		Status string `json:"status"`
+		Alerts []struct {
 			Annotations map[string]string `json:"annotations"`
-			StartsAt    string            `json:"startsAt"`
-			EndsAt      string            `json:"endsAt"`
 		} `json:"alerts"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&resp); err != nil {
