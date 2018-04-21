@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"runtime"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -283,11 +284,15 @@ func aliasCommand(ctx context.Context, s *discordgo.Session, m *discordgo.Messag
 				{
 					Name: "Aliases",
 					Value: func() string {
-						var out []string
-						for alias := range aliasMap {
-							out = append(out, "**"+alias+"**")
+						var sortedAliases []string
+						for a := range aliasMap {
+							sortedAliases = append(sortedAliases, fmt.Sprintf("**%s**", a))
 						}
-						return strings.Join(out, "\n")
+						sort.Strings(sortedAliases)
+						for i := range sortedAliases {
+							sortedAliases[i] = fmt.Sprintf("%d) %s", i+2, sortedAliases[i])
+						}
+						return strings.Join(sortedAliases, "\n")
 					}(),
 				},
 			},
