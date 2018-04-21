@@ -15,7 +15,7 @@ import (
 	"github.com/UCCNetworkingSociety/Netsoc-Discord-Bot/logging"
 
 	"github.com/bwmarrin/discordgo"
-	"github.com/go-fsnotify/fsnotify"
+	"github.com/fsnotify/fsnotify"
 	"github.com/kardianos/osext"
 )
 
