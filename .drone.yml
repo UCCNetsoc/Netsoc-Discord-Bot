@@ -3,7 +3,7 @@ pipeline:
     image: plugins/docker
     tag: latest
     dockerfile: Dockerfile
-    repo: docker.netsoc.co/netsoc-discord-bot
+    repo: docker.netsoc.co/mloc/netsoc-discord-bot
     registry: docker.netsoc.co
     secrets: [ docker_username, docker_password ]
 branches: master
