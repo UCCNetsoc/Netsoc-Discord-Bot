@@ -6,4 +6,3 @@ pipeline:
     repo: docker.netsoc.co/netsoc-discord-bot
     registry: docker.netsoc.co
     secrets: [ docker_username, docker_password ]
-branches: master
