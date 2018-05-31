@@ -1,4 +1,4 @@
-FROM golang:1.9
+FROM golang:1.10-alpine
 
 WORKDIR /go/src/github.com/UCCNetworkingSociety/Netsoc-Discord-Bot
 COPY . .
