@@ -1,10 +1,4 @@
 pipeline:
-  test:
-    image: golang
-    commands:
-      - go build
-      - go test
-
   build_push_latest:
     group: build_group
     image: plugins/docker
