@@ -1,8 +1,29 @@
 pipeline:
-  build_and_push:
+  test:
+    image: golang
+    commands:
+      - go build
+      - go test
+
+  build_push_latest:
+    group: build_group
+    image: plugins/docker
+    tags: latest
+    dockerfile: Dockerfile
+    repo: docker.netsoc.co/netsoc-discord-bot
+    registry: docker.netsoc.co
+    secrets: [ docker_username, docker_password ]
+    when:
+      branch: master
+
+  bild_push_other:
+    group: build_group
     image: plugins/docker
     tags: ${DRONE_COMMIT_BRANCH}
     dockerfile: Dockerfile
     repo: docker.netsoc.co/netsoc-discord-bot
     registry: docker.netsoc.co
     secrets: [ docker_username, docker_password ]
+    when:
+      branch:
+        exclude: [ master ]
