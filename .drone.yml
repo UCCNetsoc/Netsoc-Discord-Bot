@@ -1,4 +1,8 @@
 pipeline:
+  go_workspace:
+    base: /go
+    path: src/github.com/UCCNetworkingSociety/Netsoc-Discord-Bot
+
   unit_tests:
     image: golang:latest
     commands:
