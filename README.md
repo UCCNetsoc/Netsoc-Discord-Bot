@@ -4,6 +4,7 @@ The Netsoc Discord bot is intended to help make the lives of Netsoc SysAdmins ea
 * Integration with [Netsoc Admin](https://admin.netsoc.co)
 * Relaying server alerts to discord
 * Various commands which members of the Netsoc Discord Server can use
+* And more upcoming cool stuff B)
 
 ## Current Commands:
 
