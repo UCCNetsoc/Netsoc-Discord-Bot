@@ -9,8 +9,10 @@ pipeline:
     secrets: [ docker_username, docker_password ]
     when:
       branch: master
+      event:
+        exclude: [ pull_request ]
 
-  bild_push_other:
+  build_push_other:
     group: build_group
     image: plugins/docker
     tags: ${DRONE_COMMIT_BRANCH}
