@@ -1,7 +1,7 @@
 pipeline:
   build_and_push:
     image: plugins/docker
-    tag: latest
+    tags: ${DRONE_COMMIT_BRANCH}
     dockerfile: Dockerfile
     repo: docker.netsoc.co/netsoc-discord-bot
     registry: docker.netsoc.co
