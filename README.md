@@ -1,4 +1,4 @@
-# Netsoc Discord Bot [![Build Status](https://travis-ci.org/UCCNetworkingSociety/Netsoc-Discord-Bot.svg)](https://travis-ci.org/UCCNetworkingSociety/Netsoc-Discord-Bot)
+# Netsoc Discord Bot ![Build Status](https://ci.netsoc.co/api/badges/UCCNetworkingSociety/Netsoc-Discord-Bot/status.svg?branch=master)
 
 The Netsoc Discord bot is intended to help make the lives of Netsoc SysAdmins easier. This is done by:
 * Integration with [Netsoc Admin](https://admin.netsoc.co)
