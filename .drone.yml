@@ -1,8 +1,8 @@
-pipeline:
-  go_workspace:
-    base: /go
-    path: src/github.com/UCCNetworkingSociety/Netsoc-Discord-Bot
+workspace:
+  base: /go
+  path: src/github.com/UCCNetworkingSociety/Netsoc-Discord-Bot
 
+pipeline:
   unit_tests:
     image: golang:latest
     commands:
