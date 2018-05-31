@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"runtime"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -89,6 +90,11 @@ func init() {
 	commMap["minecraft"] = &command{
 		help: "Check to see who is currently online on the NetsocCraft server",
 		exec: minecraftCommand,
+	}
+
+	commMap["unalias"] = &command{
+		help: "Remove an alias from the stored aliases",
+		exec: unAliasCommand,
 	}
 }
 
@@ -283,11 +289,15 @@ func aliasCommand(ctx context.Context, s *discordgo.Session, m *discordgo.Messag
 				{
 					Name: "Aliases",
 					Value: func() string {
-						var out []string
-						for alias := range aliasMap {
-							out = append(out, "**"+alias+"**")
+						var sortedAliases []string
+						for a := range aliasMap {
+							sortedAliases = append(sortedAliases, fmt.Sprintf("**%s**", a))
 						}
-						return strings.Join(out, "\n")
+						sort.Strings(sortedAliases)
+						for i := range sortedAliases {
+							sortedAliases[i] = fmt.Sprintf("%d) %s", i+2, sortedAliases[i])
+						}
+						return strings.Join(sortedAliases, "\n")
 					}(),
 				},
 			},
@@ -382,6 +392,56 @@ func aliasCommand(ctx context.Context, s *discordgo.Session, m *discordgo.Messag
 		return nil, fmt.Errorf("Failed to send message to the channal %q: %v", m.ChannelID, err)
 	}
 
+	return retMsg, nil
+}
+
+// unAliasCommand takes an existing alias and removes it from the alias map
+func unAliasCommand(ctx context.Context, s *discordgo.Session, m *discordgo.MessageCreate, msg []string) (*discordgo.Message, error) {
+	l, loggerOk := logging.FromContext(ctx)
+	if loggerOk {
+		l.Infof("Responding to unalias command")
+	}
+	if len(msg) != 2 {
+		retMsg, err := s.ChannelMessageSend(m.ChannelID, "Please indicate an alias to unset")
+		if err != nil {
+			return nil, fmt.Errorf("Failed to send message to the channel %q: %v", m.ChannelID, err)
+		}
+		return retMsg, nil
+	}
+	toRemove := msg[1]
+	if _, ok := savedAliases[toRemove]; !ok {
+		retMsg, err := s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Alias %q doesn't exist", toRemove))
+		if err != nil {
+			return nil, fmt.Errorf("Failed to send message to the channel %q: %v", m.ChannelID, err)
+		}
+		return retMsg, nil
+	}
+
+	if !IsAllowed(ctx, s, m.Author.ID, "alias") {
+		retMsg, err := s.ChannelMessageSend(m.ChannelID, "You do not have permission to unalias")
+		if err != nil {
+			return nil, fmt.Errorf("Failed to send message to the channel %q: %v", m.ChannelID, err)
+		}
+		if loggerOk {
+			l.Infof("%q is not allowed to execute the alias command", m.Author)
+		}
+		return retMsg, nil
+	}
+
+	delete(savedAliases, toRemove)
+	delete(aliasMap, toRemove)
+	if err := WriteToStorage("./storage/aliases.json", savedAliases); err != nil {
+		retMsg, err := s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Error removing alias from file: %v", err))
+		if err != nil {
+			return nil, fmt.Errorf("Failed to send message to the channel %q: %v", m.ChannelID, err)
+		}
+		return retMsg, nil
+	}
+
+	retMsg, err := s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Removing alias %q", toRemove))
+	if err != nil {
+		return nil, fmt.Errorf("Failed to send message to the channel %q: %v", m.ChannelID, err)
+	}
 	return retMsg, nil
 }
 

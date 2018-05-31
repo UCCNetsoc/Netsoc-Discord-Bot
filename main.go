@@ -127,6 +127,7 @@ func alertHandler(w http.ResponseWriter, r *http.Request) error {
 			Annotations map[string]string `json:"annotations"`
 		} `json:"alerts"`
 	}
+	
 	if err := json.NewDecoder(r.Body).Decode(&resp); err != nil {
 		err = fmt.Errorf("Failed to unmarshal request JSON: %s", err)
 		if _, dgErr := dg.ChannelMessageSend(conf.AlertsChannelID, fmt.Sprintf("alerts request error: %v", err)); dgErr != nil {
@@ -208,11 +209,13 @@ func watchSelf(l *logging.Logger) (chan struct{}, error) {
 	if err != nil {
 		return nil, err
 	}
+	
 	l.Infof("watching %q\n", file)
 	w, err := fsnotify.NewWatcher()
 	if err != nil {
 		return nil, err
 	}
+	
 	done := make(chan struct{})
 	go func() {
 		for {
@@ -237,5 +240,6 @@ func watchSelf(l *logging.Logger) (chan struct{}, error) {
 	if err != nil {
 		return nil, err
 	}
+	
 	return done, nil
 }
