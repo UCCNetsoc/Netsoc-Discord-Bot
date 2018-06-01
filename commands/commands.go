@@ -209,6 +209,7 @@ func inspireCommand(ctx context.Context, s *discordgo.Session, m *discordgo.Mess
 	return retMsg, nil
 }
 
+// configCommand returns a message with the current configuration of the bot
 func configCommand(ctx context.Context, s *discordgo.Session, m *discordgo.MessageCreate, _ []string) (*discordgo.Message, error) {
 	l, loggerOk := logging.FromContext(ctx)
 	if loggerOk {
@@ -241,6 +242,7 @@ func configCommand(ctx context.Context, s *discordgo.Session, m *discordgo.Messa
 	return retMsg, nil
 }
 
+// infoCommand returns a message with the current resource usage of the bot
 func infoCommand(ctx context.Context, s *discordgo.Session, m *discordgo.MessageCreate, _ []string) (*discordgo.Message, error) {
 	var mem runtime.MemStats
 	runtime.ReadMemStats(&mem)
