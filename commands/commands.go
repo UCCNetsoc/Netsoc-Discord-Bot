@@ -192,7 +192,7 @@ func inspireCommand(ctx context.Context, s *discordgo.Session, m *discordgo.Mess
 	}
 
 	q := &struct {
-		QuoteText   string `json:"quoteTxt"`
+		QuoteText   string `json:"quoteText"`
 		QuoteAuthor string `json:"quoteAuthor"`
 	}{}
 	if err := json.Unmarshal(body, q); err != nil {
