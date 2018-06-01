@@ -70,13 +70,9 @@ func main() {
 	}
 	l.Infof("Bot successfully started")
 
-	if _, err := watchSelf(l); err != nil {
-		l.Errorf("Failed to create self-binary watcher: %v", err)
-		return
-	}
-
 	l.Infof("Watching config.json")
-	if _, err := watchConfig(l); err != nil {
+	watcherDone, err := watchConfig()
+	if err != nil {
 		l.Errorf("Failed to create configuration file watcher: %v", err)
 		return
 	}
@@ -85,6 +81,7 @@ func main() {
 	http.Handle("/help", handlerWithError(help))
 	http.Handle("/alert", handlerWithError(alertHandler))
 	if err := http.ListenAndServe(conf.BotHostName, nil); err != nil {
+		watcherDone <- struct{}{}
 		l.Errorf("Failed to serve HTTP: %s", err)
 	}
 }
@@ -161,31 +158,31 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	}
 }
 
-// WatchConfig monitors for changes in the config JSON file and reloads the
+// watchConfig monitors for changes in the config JSON file and reloads the
 // config values if there is
-func watchConfig(l *logging.Logger) (chan bool, error) {
+func watchConfig() (chan struct{}, error) {
 	// creates a new file watcher
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
-		l.Errorf("ERROR %#v", err)
+		l.Errorf("Failed to create filesystem watcher for config file: %v", err)
 	}
 
-	done := make(chan bool)
+	done := make(chan struct{})
 
 	go func() {
 		for {
 			select {
 			// watch for events
 			case event := <-watcher.Events:
-				l.Infof("Config file changed, reloading config. Event: %#v", event)
+				l.Infof("Watcher event recieved: %s", event)
 				config.LoadConfig()
 
-				// watch for errors
+			// watch for errors
 			case err := <-watcher.Errors:
-				l.Errorf("ERROR %#v", err)
+				l.Errorf("Config file watcher error: %v", err)
 
 			case <-done:
-				l.Infof("watcher shutting down")
+				l.Infof("Watcher shutting down")
 				return
 			}
 		}
@@ -193,7 +190,7 @@ func watchConfig(l *logging.Logger) (chan bool, error) {
 
 	// out of the box fsnotify can watch a single file, or a single directory
 	if err := watcher.Add("./config.json"); err != nil {
-		l.Errorf("ERROR %#v", err)
+		l.Errorf("Failed to add config file to watcher: %v", err)
 	}
 
 	return done, nil
