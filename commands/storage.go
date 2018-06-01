@@ -12,11 +12,11 @@ func WriteToStorage(filePath string, s interface{}) error {
 	structure, err := json.Marshal(s)
 
 	if err != nil {
-		return fmt.Errorf("Failed to marshal JSON: %v", err)
+		return fmt.Errorf("Failed to marshal JSON: %s", err)
 	}
 
 	if err = ioutil.WriteFile(filePath, structure, 0744); err != nil {
-		return fmt.Errorf("Failed to write file: %v", err)
+		return fmt.Errorf("Failed to write file: %s", err)
 	}
 
 	return nil
@@ -30,7 +30,7 @@ func LoadFromStorage(filePath string, s interface{}) error {
 
 	file, err := ioutil.ReadFile(filePath)
 	if err != nil {
-		return fmt.Errorf("failed to read configuration file: %v", err)
+		return fmt.Errorf("failed to read configuration file: %s", err)
 	}
 
 	if err := json.Unmarshal(file, &s); err != nil {

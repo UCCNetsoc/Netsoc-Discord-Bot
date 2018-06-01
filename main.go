@@ -32,7 +32,7 @@ func (h handlerWithError) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	l.Infof("Received request for %q", uri)
 	if err := h(w, r); err != nil {
 		http.Error(w, err.Error(), 500)
-		l.Errorf("Failed to handle request for %q: %v", uri, err)
+		l.Errorf("Failed to handle request for %q: %s", uri, err)
 	}
 }
 
@@ -65,7 +65,7 @@ func main() {
 	defer dg.Close()
 
 	if err := dg.UpdateStatus(0, conf.Prefix+commands.HelpCommand); err != nil {
-		l.Errorf("Failed to set bot's status: %v", err)
+		l.Errorf("Failed to set bot's status: %s", err)
 		return
 	}
 	l.Infof("Bot successfully started")
@@ -73,7 +73,7 @@ func main() {
 	l.Infof("Watching config.json")
 	watcherDone, err := watchConfig()
 	if err != nil {
-		l.Errorf("Failed to create configuration file watcher: %v", err)
+		l.Errorf("Failed to create configuration file watcher: %s", err)
 		return
 	}
 
@@ -98,15 +98,15 @@ func help(w http.ResponseWriter, r *http.Request) error {
 	}
 	if err := json.NewDecoder(r.Body).Decode(&resp); err != nil {
 		err = fmt.Errorf("Failed to unmarshal request JSON: %s", err)
-		if _, dgErr := dg.ChannelMessageSend(conf.HelpChannelID, fmt.Sprintf("help request error: %v", err)); dgErr != nil {
-			return fmt.Errorf("failed to send failure notice to discord (%v): %v", err, dgErr)
+		if _, dgErr := dg.ChannelMessageSend(conf.HelpChannelID, fmt.Sprintf("help request error: %s", err)); dgErr != nil {
+			return fmt.Errorf("failed to send failure notice to discord (%s): %s", err, dgErr)
 		}
 		return err
 	}
 
 	msg := fmt.Sprintf("%s Help pls\n\n```From: %s\nEmail: %s\n\nSubject: %s\n\n%s```", conf.SysAdminTag, resp.User, resp.Email, resp.Subject, resp.Message)
 	if _, err := dg.ChannelMessageSend(conf.HelpChannelID, msg); err != nil {
-		return fmt.Errorf("Failed to send help request to discord: %v", err)
+		return fmt.Errorf("Failed to send help request to discord: %s", err)
 	}
 	return nil
 }
@@ -124,8 +124,8 @@ func alertHandler(w http.ResponseWriter, r *http.Request) error {
 
 	if err := json.NewDecoder(r.Body).Decode(&resp); err != nil {
 		err = fmt.Errorf("Failed to unmarshal request JSON: %s", err)
-		if _, dgErr := dg.ChannelMessageSend(conf.AlertsChannelID, fmt.Sprintf("alerts request error: %v", err)); dgErr != nil {
-			return fmt.Errorf("failed to send failure notice to discord (%v): %v", err, dgErr)
+		if _, dgErr := dg.ChannelMessageSend(conf.AlertsChannelID, fmt.Sprintf("alerts request error: %s", err)); dgErr != nil {
+			return fmt.Errorf("failed to send failure notice to discord (%s): %s", err, dgErr)
 		}
 		return err
 	}
@@ -135,7 +135,7 @@ func alertHandler(w http.ResponseWriter, r *http.Request) error {
 		msg += fmt.Sprintf("\n - %s", a.Annotations["summary"])
 	}
 	if _, err := dg.ChannelMessageSend(conf.AlertsChannelID, msg); err != nil {
-		return fmt.Errorf("failed to send alert to discord: %v", err)
+		return fmt.Errorf("failed to send alert to discord: %s", err)
 	}
 	return nil
 }
@@ -164,7 +164,7 @@ func watchConfig() (chan struct{}, error) {
 	// creates a new file watcher
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
-		l.Errorf("Failed to create filesystem watcher for config file: %v", err)
+		l.Errorf("Failed to create filesystem watcher for config file: %s", err)
 	}
 
 	done := make(chan struct{})
@@ -179,7 +179,7 @@ func watchConfig() (chan struct{}, error) {
 
 			// watch for errors
 			case err := <-watcher.Errors:
-				l.Errorf("Config file watcher error: %v", err)
+				l.Errorf("Config file watcher error: %s", err)
 
 			case <-done:
 				l.Infof("Watcher shutting down")
@@ -190,7 +190,7 @@ func watchConfig() (chan struct{}, error) {
 
 	// out of the box fsnotify can watch a single file, or a single directory
 	if err := watcher.Add("./config.json"); err != nil {
-		l.Errorf("Failed to add config file to watcher: %v", err)
+		l.Errorf("Failed to add config file to watcher: %s", err)
 	}
 
 	return done, nil

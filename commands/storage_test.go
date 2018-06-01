@@ -13,14 +13,12 @@ func TestWriteToStorage(t *testing.T) {
 		"key":  "value",
 	}
 
-	err := WriteToStorage("../storage/test.json", writeStructure)
-	if err != nil {
-		t.Errorf("Err: %#v", err)
+	if err := WriteToStorage("../storage/test.json", writeStructure); err != nil {
+		t.Errorf("WriteToStorage error: %s", err)
 	}
 
-	err = LoadFromStorage("../storage/test.json", &readStructure)
-	if err != nil {
-		t.Errorf("Err: %#v", err)
+	if err = LoadFromStorage("../storage/test.json", &readStructure); err != nil {
+		t.Errorf("LoadFromStorage error: %s", err)
 	}
 
 	assert.Equal(t, writeStructure, readStructure)
