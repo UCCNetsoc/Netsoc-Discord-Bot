@@ -17,7 +17,7 @@ func TestWriteToStorage(t *testing.T) {
 		t.Errorf("WriteToStorage error: %s", err)
 	}
 
-	if err = LoadFromStorage("../storage/test.json", &readStructure); err != nil {
+	if err := LoadFromStorage("../storage/test.json", &readStructure); err != nil {
 		t.Errorf("LoadFromStorage error: %s", err)
 	}
 
