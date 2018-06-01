@@ -6,9 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 	"strings"
-	"syscall"
 
 	"github.com/UCCNetworkingSociety/Netsoc-Discord-Bot/commands"
 	"github.com/UCCNetworkingSociety/Netsoc-Discord-Bot/config"
@@ -16,7 +14,6 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/fsnotify/fsnotify"
-	"github.com/kardianos/osext"
 )
 
 var (
@@ -127,7 +124,7 @@ func alertHandler(w http.ResponseWriter, r *http.Request) error {
 			Annotations map[string]string `json:"annotations"`
 		} `json:"alerts"`
 	}
-	
+
 	if err := json.NewDecoder(r.Body).Decode(&resp); err != nil {
 		err = fmt.Errorf("Failed to unmarshal request JSON: %s", err)
 		if _, dgErr := dg.ChannelMessageSend(conf.AlertsChannelID, fmt.Sprintf("alerts request error: %v", err)); dgErr != nil {
@@ -199,47 +196,5 @@ func watchConfig(l *logging.Logger) (chan bool, error) {
 		l.Errorf("ERROR %#v", err)
 	}
 
-	return done, nil
-}
-
-// watchSelf watches for changes in the main binary and hot-swaps itself for the newly
-// built binary file
-func watchSelf(l *logging.Logger) (chan struct{}, error) {
-	file, err := osext.Executable()
-	if err != nil {
-		return nil, err
-	}
-	
-	l.Infof("watching %q\n", file)
-	w, err := fsnotify.NewWatcher()
-	if err != nil {
-		return nil, err
-	}
-	
-	done := make(chan struct{})
-	go func() {
-		for {
-			select {
-			case e := <-w.Events:
-				l.Infof("watcher received: %+v", e)
-				err := syscall.Exec(file, os.Args, os.Environ())
-				if err != nil {
-					l.Errorf("%#v", err)
-				}
-			case err := <-w.Errors:
-				l.Infof("watcher error: %+v", err)
-			case <-done:
-				l.Infof("watcher shutting down")
-				return
-			}
-		}
-	}()
-
-	l.Infof("%#v", file)
-	err = w.Add(file)
-	if err != nil {
-		return nil, err
-	}
-	
 	return done, nil
 }
