@@ -6,9 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 	"strings"
-	"syscall"
 
 	"github.com/UCCNetworkingSociety/Netsoc-Discord-Bot/commands"
 	"github.com/UCCNetworkingSociety/Netsoc-Discord-Bot/config"
@@ -16,7 +14,6 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/fsnotify/fsnotify"
-	"github.com/kardianos/osext"
 )
 
 var (
@@ -35,7 +32,7 @@ func (h handlerWithError) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	l.Infof("Received request for %q", uri)
 	if err := h(w, r); err != nil {
 		http.Error(w, err.Error(), 500)
-		l.Errorf("Failed to handle request for %q: %v", uri, err)
+		l.Errorf("Failed to handle request for %q: %s", uri, err)
 	}
 }
 
@@ -68,19 +65,15 @@ func main() {
 	defer dg.Close()
 
 	if err := dg.UpdateStatus(0, conf.Prefix+commands.HelpCommand); err != nil {
-		l.Errorf("Failed to set bot's status: %v", err)
+		l.Errorf("Failed to set bot's status: %s", err)
 		return
 	}
 	l.Infof("Bot successfully started")
 
-	if _, err := watchSelf(l); err != nil {
-		l.Errorf("Failed to create self-binary watcher: %v", err)
-		return
-	}
-
 	l.Infof("Watching config.json")
-	if _, err := watchConfig(l); err != nil {
-		l.Errorf("Failed to create configuration file watcher: %v", err)
+	watcherDone, err := watchConfig()
+	if err != nil {
+		l.Errorf("Failed to create configuration file watcher: %s", err)
 		return
 	}
 
@@ -88,6 +81,7 @@ func main() {
 	http.Handle("/help", handlerWithError(help))
 	http.Handle("/alert", handlerWithError(alertHandler))
 	if err := http.ListenAndServe(conf.BotHostName, nil); err != nil {
+		watcherDone <- struct{}{}
 		l.Errorf("Failed to serve HTTP: %s", err)
 	}
 }
@@ -104,15 +98,15 @@ func help(w http.ResponseWriter, r *http.Request) error {
 	}
 	if err := json.NewDecoder(r.Body).Decode(&resp); err != nil {
 		err = fmt.Errorf("Failed to unmarshal request JSON: %s", err)
-		if _, dgErr := dg.ChannelMessageSend(conf.HelpChannelID, fmt.Sprintf("help request error: %v", err)); dgErr != nil {
-			return fmt.Errorf("failed to send failure notice to discord (%v): %v", err, dgErr)
+		if _, dgErr := dg.ChannelMessageSend(conf.HelpChannelID, fmt.Sprintf("help request error: %s", err)); dgErr != nil {
+			return fmt.Errorf("failed to send failure notice to discord (%s): %s", err, dgErr)
 		}
 		return err
 	}
 
 	msg := fmt.Sprintf("%s Help pls\n\n```From: %s\nEmail: %s\n\nSubject: %s\n\n%s```", conf.SysAdminTag, resp.User, resp.Email, resp.Subject, resp.Message)
 	if _, err := dg.ChannelMessageSend(conf.HelpChannelID, msg); err != nil {
-		return fmt.Errorf("Failed to send help request to discord: %v", err)
+		return fmt.Errorf("Failed to send help request to discord: %s", err)
 	}
 	return nil
 }
@@ -127,11 +121,11 @@ func alertHandler(w http.ResponseWriter, r *http.Request) error {
 			Annotations map[string]string `json:"annotations"`
 		} `json:"alerts"`
 	}
-	
+
 	if err := json.NewDecoder(r.Body).Decode(&resp); err != nil {
 		err = fmt.Errorf("Failed to unmarshal request JSON: %s", err)
-		if _, dgErr := dg.ChannelMessageSend(conf.AlertsChannelID, fmt.Sprintf("alerts request error: %v", err)); dgErr != nil {
-			return fmt.Errorf("failed to send failure notice to discord (%v): %v", err, dgErr)
+		if _, dgErr := dg.ChannelMessageSend(conf.AlertsChannelID, fmt.Sprintf("alerts request error: %s", err)); dgErr != nil {
+			return fmt.Errorf("failed to send failure notice to discord (%s): %s", err, dgErr)
 		}
 		return err
 	}
@@ -141,7 +135,7 @@ func alertHandler(w http.ResponseWriter, r *http.Request) error {
 		msg += fmt.Sprintf("\n - %s", a.Annotations["summary"])
 	}
 	if _, err := dg.ChannelMessageSend(conf.AlertsChannelID, msg); err != nil {
-		return fmt.Errorf("failed to send alert to discord: %v", err)
+		return fmt.Errorf("failed to send alert to discord: %s", err)
 	}
 	return nil
 }
@@ -164,31 +158,31 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	}
 }
 
-// WatchConfig monitors for changes in the config JSON file and reloads the
+// watchConfig monitors for changes in the config JSON file and reloads the
 // config values if there is
-func watchConfig(l *logging.Logger) (chan bool, error) {
+func watchConfig() (chan struct{}, error) {
 	// creates a new file watcher
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
-		l.Errorf("ERROR %#v", err)
+		l.Errorf("Failed to create filesystem watcher for config file: %s", err)
 	}
 
-	done := make(chan bool)
+	done := make(chan struct{})
 
 	go func() {
 		for {
 			select {
 			// watch for events
 			case event := <-watcher.Events:
-				l.Infof("Config file changed, reloading config. Event: %#v", event)
+				l.Infof("Watcher event recieved: %s", event)
 				config.LoadConfig()
 
-				// watch for errors
+			// watch for errors
 			case err := <-watcher.Errors:
-				l.Errorf("ERROR %#v", err)
+				l.Errorf("Config file watcher error: %s", err)
 
 			case <-done:
-				l.Infof("watcher shutting down")
+				l.Infof("Watcher shutting down")
 				return
 			}
 		}
@@ -196,50 +190,8 @@ func watchConfig(l *logging.Logger) (chan bool, error) {
 
 	// out of the box fsnotify can watch a single file, or a single directory
 	if err := watcher.Add("./config.json"); err != nil {
-		l.Errorf("ERROR %#v", err)
+		l.Errorf("Failed to add config file to watcher: %s", err)
 	}
 
-	return done, nil
-}
-
-// watchSelf watches for changes in the main binary and hot-swaps itself for the newly
-// built binary file
-func watchSelf(l *logging.Logger) (chan struct{}, error) {
-	file, err := osext.Executable()
-	if err != nil {
-		return nil, err
-	}
-	
-	l.Infof("watching %q\n", file)
-	w, err := fsnotify.NewWatcher()
-	if err != nil {
-		return nil, err
-	}
-	
-	done := make(chan struct{})
-	go func() {
-		for {
-			select {
-			case e := <-w.Events:
-				l.Infof("watcher received: %+v", e)
-				err := syscall.Exec(file, os.Args, os.Environ())
-				if err != nil {
-					l.Errorf("%#v", err)
-				}
-			case err := <-w.Errors:
-				l.Infof("watcher error: %+v", err)
-			case <-done:
-				l.Infof("watcher shutting down")
-				return
-			}
-		}
-	}()
-
-	l.Infof("%#v", file)
-	err = w.Add(file)
-	if err != nil {
-		return nil, err
-	}
-	
 	return done, nil
 }

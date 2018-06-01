@@ -109,12 +109,12 @@ func minecraftCommand(ctx context.Context, s *discordgo.Session, m *discordgo.Me
 	resp, err := http.Get("http://minecraft.netsoc.co/standalone/dynmap_NetsocCraft.json")
 
 	if err != nil {
-		return nil, fmt.Errorf("Failed to retrieve data from the Minecraft Server: %v", err)
+		return nil, fmt.Errorf("Failed to retrieve data from the Minecraft Server: %s", err)
 	}
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to read the response body: %v", err)
+		return nil, fmt.Errorf("Failed to read the response body: %s", err)
 	}
 
 	// Unmarshal the data and get all the player lists I guess
@@ -141,7 +141,7 @@ func minecraftCommand(ctx context.Context, s *discordgo.Session, m *discordgo.Me
 	}{}
 
 	if err := json.Unmarshal(body, q); err != nil {
-		return nil, fmt.Errorf("Failed to parse response json %q: %v", string(body), err)
+		return nil, fmt.Errorf("Failed to parse response json %q: %s", string(body), err)
 	}
 
 	// Create a discord message containing a list of all the players currently online
@@ -159,7 +159,7 @@ func minecraftCommand(ctx context.Context, s *discordgo.Session, m *discordgo.Me
 	// Attempt to send the message to the discord
 	retMsg, err := s.ChannelMessageSend(m.ChannelID, msg)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to send message to the channal %q: %v", m.ChannelID, err)
+		return nil, fmt.Errorf("Failed to send message to the channal %q: %s", m.ChannelID, err)
 	}
 	if loggerOk {
 		l.Infof("Sending minecraft information: %d users active", len(q.Players))
@@ -182,26 +182,26 @@ func inspireCommand(ctx context.Context, s *discordgo.Session, m *discordgo.Mess
 			"lang":   {"en"},
 		})
 	if err != nil {
-		return nil, fmt.Errorf("Failed to get the quote from API: %v", err)
+		return nil, fmt.Errorf("Failed to get the quote from API: %s", err)
 	}
 	defer resp.Body.Close()
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to read the response body: %v", err)
+		return nil, fmt.Errorf("Failed to read the response body: %s", err)
 	}
 
 	q := &struct {
-		QuoteText   string `json:"quoteTxt"`
+		QuoteText   string `json:"quoteText"`
 		QuoteAuthor string `json:"quoteAuthor"`
 	}{}
 	if err := json.Unmarshal(body, q); err != nil {
-		return nil, fmt.Errorf("Failed to parse response json %q: %v", string(body), err)
+		return nil, fmt.Errorf("Failed to parse response json %q: %s", string(body), err)
 	}
 
 	retMsg, err := s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("%q - %s", q.QuoteText, q.QuoteAuthor))
 	if err != nil {
-		return nil, fmt.Errorf("Failed to send message to the channal %q: %v", m.ChannelID, err)
+		return nil, fmt.Errorf("Failed to send message to the channal %q: %s", m.ChannelID, err)
 	}
 	if loggerOk {
 		l.Infof("Sending quote %q", q.QuoteText)
@@ -209,6 +209,7 @@ func inspireCommand(ctx context.Context, s *discordgo.Session, m *discordgo.Mess
 	return retMsg, nil
 }
 
+// configCommand returns a message with the current configuration of the bot
 func configCommand(ctx context.Context, s *discordgo.Session, m *discordgo.MessageCreate, _ []string) (*discordgo.Message, error) {
 	l, loggerOk := logging.FromContext(ctx)
 	if loggerOk {
@@ -219,7 +220,7 @@ func configCommand(ctx context.Context, s *discordgo.Session, m *discordgo.Messa
 	if !IsAllowed(ctx, s, m.Author.ID, "config") {
 		retMsg, err := s.ChannelMessageSend(m.ChannelID, "You do not have permissions to use this command.")
 		if err != nil {
-			return nil, fmt.Errorf("Failed to send message to the channal %q: %v", m.ChannelID, err)
+			return nil, fmt.Errorf("Failed to send message to the channal %q: %s", m.ChannelID, err)
 		}
 		if loggerOk {
 			l.Infof("%q is not allowed to execute the config command", m.Author)
@@ -235,12 +236,13 @@ func configCommand(ctx context.Context, s *discordgo.Session, m *discordgo.Messa
 		},
 	})
 	if err != nil {
-		return nil, fmt.Errorf("Failed to send message to the channal %q: %v", m.ChannelID, err)
+		return nil, fmt.Errorf("Failed to send message to the channal %q: %s", m.ChannelID, err)
 	}
 
 	return retMsg, nil
 }
 
+// infoCommand returns a message with the current resource usage of the bot
 func infoCommand(ctx context.Context, s *discordgo.Session, m *discordgo.MessageCreate, _ []string) (*discordgo.Message, error) {
 	var mem runtime.MemStats
 	runtime.ReadMemStats(&mem)
@@ -256,7 +258,7 @@ func infoCommand(ctx context.Context, s *discordgo.Session, m *discordgo.Message
 		},
 	})
 	if err != nil {
-		return nil, fmt.Errorf("Failed to send message to the channal %q: %v", m.ChannelID, err)
+		return nil, fmt.Errorf("Failed to send message to the channal %q: %s", m.ChannelID, err)
 	}
 
 	return retMsg, nil
@@ -267,7 +269,7 @@ func pingCommand(ctx context.Context, s *discordgo.Session, m *discordgo.Message
 	l, ok := logging.FromContext(ctx)
 	retMsg, err := s.ChannelMessageSend(m.ChannelID, "Pong!")
 	if err != nil {
-		return nil, fmt.Errorf("Failed to send message to the channal %q: %v", m.ChannelID, err)
+		return nil, fmt.Errorf("Failed to send message to the channal %q: %s", m.ChannelID, err)
 	}
 	if ok {
 		l.Infof("Responding 'Pong!' to ping command")
@@ -337,7 +339,7 @@ func aliasCommand(ctx context.Context, s *discordgo.Session, m *discordgo.Messag
 	case len(c) == 2:
 		retMsg, err := s.ChannelMessageSend(m.ChannelID, "Too few arguments supplied. Refer to !help for usage.")
 		if err != nil {
-			return nil, fmt.Errorf("Failed to send message to the channal %q: %v", m.ChannelID, err)
+			return nil, fmt.Errorf("Failed to send message to the channal %q: %s", m.ChannelID, err)
 		}
 		return retMsg, errors.New("Too few arguments supplied for set command")
 	}
@@ -346,7 +348,7 @@ func aliasCommand(ctx context.Context, s *discordgo.Session, m *discordgo.Messag
 	if !IsAllowed(ctx, s, m.Author.ID, "alias") {
 		retMsg, err := s.ChannelMessageSend(m.ChannelID, "You do not have permissions to use this command.")
 		if err != nil {
-			return nil, fmt.Errorf("Failed to send message to the channal %q: %v", m.ChannelID, err)
+			return nil, fmt.Errorf("Failed to send message to the channal %q: %s", m.ChannelID, err)
 		}
 		if loggerOk {
 			l.Infof("%q is not allowed to execute the alias command", m.Author)
@@ -359,7 +361,7 @@ func aliasCommand(ctx context.Context, s *discordgo.Session, m *discordgo.Messag
 		// If key already exists
 		retMsg, err := s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("%s is a registered command/alias and cannot be set as an alias.", c[1]))
 		if err != nil {
-			return nil, fmt.Errorf("Failed to send message to the channal %q: %v", m.ChannelID, err)
+			return nil, fmt.Errorf("Failed to send message to the channal %q: %s", m.ChannelID, err)
 		}
 		if loggerOk {
 			l.Infof("%s attempted to overwrite command %s with %s", m.Author, c[1], strings.Join(c[2:], " "))
@@ -378,7 +380,7 @@ func aliasCommand(ctx context.Context, s *discordgo.Session, m *discordgo.Messag
 		l.Errorf("Error writing alias to file")
 		retMsg, err := s.ChannelMessageSend(m.ChannelID, "Error writing alias to file.")
 		if err != nil {
-			return nil, fmt.Errorf("Failed to send message to the channal %q: %v", m.ChannelID, err)
+			return nil, fmt.Errorf("Failed to send message to the channal %q: %s", m.ChannelID, err)
 		}
 		return retMsg, nil
 	}
@@ -389,7 +391,7 @@ func aliasCommand(ctx context.Context, s *discordgo.Session, m *discordgo.Messag
 
 	retMsg, err := s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("%s has set an alias for %s => %s", m.Author, c[1], strings.Join(c[2:], " ")))
 	if err != nil {
-		return nil, fmt.Errorf("Failed to send message to the channal %q: %v", m.ChannelID, err)
+		return nil, fmt.Errorf("Failed to send message to the channal %q: %s", m.ChannelID, err)
 	}
 
 	return retMsg, nil
@@ -404,7 +406,7 @@ func unAliasCommand(ctx context.Context, s *discordgo.Session, m *discordgo.Mess
 	if len(msg) != 2 {
 		retMsg, err := s.ChannelMessageSend(m.ChannelID, "Please indicate an alias to unset")
 		if err != nil {
-			return nil, fmt.Errorf("Failed to send message to the channel %q: %v", m.ChannelID, err)
+			return nil, fmt.Errorf("Failed to send message to the channel %q: %s", m.ChannelID, err)
 		}
 		return retMsg, nil
 	}
@@ -412,7 +414,7 @@ func unAliasCommand(ctx context.Context, s *discordgo.Session, m *discordgo.Mess
 	if _, ok := savedAliases[toRemove]; !ok {
 		retMsg, err := s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Alias %q doesn't exist", toRemove))
 		if err != nil {
-			return nil, fmt.Errorf("Failed to send message to the channel %q: %v", m.ChannelID, err)
+			return nil, fmt.Errorf("Failed to send message to the channel %q: %s", m.ChannelID, err)
 		}
 		return retMsg, nil
 	}
@@ -420,7 +422,7 @@ func unAliasCommand(ctx context.Context, s *discordgo.Session, m *discordgo.Mess
 	if !IsAllowed(ctx, s, m.Author.ID, "alias") {
 		retMsg, err := s.ChannelMessageSend(m.ChannelID, "You do not have permission to unalias")
 		if err != nil {
-			return nil, fmt.Errorf("Failed to send message to the channel %q: %v", m.ChannelID, err)
+			return nil, fmt.Errorf("Failed to send message to the channel %q: %s", m.ChannelID, err)
 		}
 		if loggerOk {
 			l.Infof("%q is not allowed to execute the alias command", m.Author)
@@ -431,16 +433,16 @@ func unAliasCommand(ctx context.Context, s *discordgo.Session, m *discordgo.Mess
 	delete(savedAliases, toRemove)
 	delete(aliasMap, toRemove)
 	if err := WriteToStorage("./storage/aliases.json", savedAliases); err != nil {
-		retMsg, err := s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Error removing alias from file: %v", err))
+		retMsg, err := s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Error removing alias from file: %s", err))
 		if err != nil {
-			return nil, fmt.Errorf("Failed to send message to the channel %q: %v", m.ChannelID, err)
+			return nil, fmt.Errorf("Failed to send message to the channel %q: %s", m.ChannelID, err)
 		}
 		return retMsg, nil
 	}
 
 	retMsg, err := s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Removing alias %q", toRemove))
 	if err != nil {
-		return nil, fmt.Errorf("Failed to send message to the channel %q: %v", m.ChannelID, err)
+		return nil, fmt.Errorf("Failed to send message to the channel %q: %s", m.ChannelID, err)
 	}
 	return retMsg, nil
 }
@@ -461,14 +463,14 @@ func showHelpCommand(ctx context.Context, s *discordgo.Session, m *discordgo.Mes
 				},
 			})
 			if err != nil {
-				return nil, fmt.Errorf("Failed to send message to the channal %q: %v", m.ChannelID, err)
+				return nil, fmt.Errorf("Failed to send message to the channal %q: %s", m.ChannelID, err)
 			}
 			return retMsg, nil
 		}
 
 		retMsg, err := s.ChannelMessageSend(m.ChannelID, "Command not found.")
 		if err != nil {
-			return nil, fmt.Errorf("Failed to send message to the channal %q: %v", m.ChannelID, err)
+			return nil, fmt.Errorf("Failed to send message to the channal %q: %s", m.ChannelID, err)
 		}
 		return retMsg, nil
 	}
@@ -490,7 +492,7 @@ func showHelpCommand(ctx context.Context, s *discordgo.Session, m *discordgo.Mes
 		}(),
 	})
 	if err != nil {
-		return nil, fmt.Errorf("Failed to send message to the channal %q: %v", m.ChannelID, err)
+		return nil, fmt.Errorf("Failed to send message to the channal %q: %s", m.ChannelID, err)
 	}
 	return retMsg, nil
 }
@@ -501,12 +503,12 @@ func Execute(ctx context.Context, s *discordgo.Session, m *discordgo.MessageCrea
 
 	if c, ok := commMap[args[0]]; ok {
 		if _, err := c.exec(ctx, s, m, args); err != nil {
-			return fmt.Errorf("failed to execute command: %#v", err)
+			return fmt.Errorf("failed to execute command: %s", err)
 		}
 		return nil
 	} else if val, ok := aliasMap[args[0]]; ok {
 		if _, err := s.ChannelMessageSend(m.ChannelID, val.help); err != nil {
-			return fmt.Errorf("Failed to send message to the channal %q: %v", m.ChannelID, err)
+			return fmt.Errorf("Failed to send message to the channal %q: %s", m.ChannelID, err)
 		}
 		return nil
 	}

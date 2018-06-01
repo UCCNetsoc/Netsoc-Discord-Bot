@@ -72,7 +72,7 @@ func init() {
 func LoadConfig() error {
 	file, err := ioutil.ReadFile("config.json")
 	if err != nil {
-		return fmt.Errorf("Failed to read configuration file: %#v", err)
+		return fmt.Errorf("Failed to read configuration file: %s", err)
 	}
 
 	if len(file) < 1 {
@@ -84,7 +84,7 @@ func LoadConfig() error {
 		return fmt.Errorf("Failed to unmarshal configuration JSON: %s", err)
 	}
 	if err := mergo.MergeWithOverwrite(conf, tmpconf); err != nil {
-		return fmt.Errorf("Failed to merge configuration values: %#v", err)
+		return fmt.Errorf("Failed to merge configuration values: %s", err)
 	}
 
 	return nil
