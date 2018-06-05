@@ -6,6 +6,7 @@ pipeline:
   unit_tests:
     image: golang:latest
     commands:
+      - bash -c "if [[ \$(gofmt -l *.go) ]]; then gofmt -l *.go; exit 1; fi"
       - go get -t ./...
       - go test ./...
 
