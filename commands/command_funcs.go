@@ -16,6 +16,8 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
+var minecraftAPIURL = "http://minecraft.netsoc.co/standalone/dynmap_NetsocCraft.json"
+
 // pingCommand is a basic command which will responds "Pong!" to any ping.
 func pingCommand(ctx context.Context, _ []string) (string, error) {
 	if l, ok := logging.FromContext(ctx); ok {
@@ -32,7 +34,7 @@ func minecraftCommand(ctx context.Context, _ []string) (string, error) {
 		l.Infof("Responding to minecraft command")
 	}
 
-	resp, err := http.Get("http://minecraft.netsoc.co/standalone/dynmap_NetsocCraft.json")
+	resp, err := http.Get(minecraftAPIURL)
 	if err != nil {
 		return "", fmt.Errorf("Failed to retrieve data from the Minecraft Server: %s", err)
 	}
@@ -44,25 +46,9 @@ func minecraftCommand(ctx context.Context, _ []string) (string, error) {
 
 	// Unmarshal the data and get all the player lists I guess
 	q := &struct {
-		CurrentCount int  `json:"currentcount"`
-		HasStorm     bool `json:"hasStorm"`
-		IsThundering bool `json:"isThundering"`
-		ConfigHash   int  `json:"confighash"`
-		ServerTime   int  `json:"servertime"`
-		TimeStamp    int  `json:"timestamp"`
-		Players      []struct {
-			// Players nested JSON structure
-			World   string  `json:"world"`
-			Armour  int     `json:"armor"`
-			Name    string  `json:"name"`
-			X       float64 `json:"x"`
-			Y       float64 `json:"y"`
-			Z       float64 `json:"z"`
-			Sort    int     `json:"sort"`
-			Type    string  `json:"type"`
-			Account string  `json:"account"`
+		Players []struct {
+			Name string `json:"name"`
 		} `json:"players"`
-		Updates []interface{} `json:"updates"`
 	}{}
 
 	if err := json.Unmarshal(body, q); err != nil {
@@ -84,7 +70,7 @@ func minecraftCommand(ctx context.Context, _ []string) (string, error) {
 	if loggerOk {
 		l.Infof("Sending minecraft information: %d users active", len(q.Players))
 	}
-	return "", nil
+	return msg, nil
 }
 
 // inspireCommand gets an inspirational quote from forismatic.com
