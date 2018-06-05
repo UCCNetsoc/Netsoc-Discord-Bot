@@ -3,19 +3,14 @@ package commands
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
 	"net/http"
 	"net/url"
 	"runtime"
-	"sort"
 	"strconv"
-	"strings"
-	"time"
 
-	"github.com/Necroforger/dgwidgets"
 	"github.com/UCCNetworkingSociety/Netsoc-Discord-Bot/config"
 	"github.com/UCCNetworkingSociety/Netsoc-Discord-Bot/logging"
 	"github.com/bwmarrin/discordgo"
@@ -200,120 +195,4 @@ func infoCommand(ctx context.Context, _ []string) (*discordgo.MessageEmbed, erro
 			{Name: "Usable Cores:", Value: "```" + strconv.Itoa(runtime.NumCPU()) + "```", Inline: true},
 		},
 	}, nil
-}
-
-// aliasCommand sets string => string shortcut that can be called later to print a value
-func aliasCommand(ctx context.Context, args []string) (string, error) {
-	l, loggerOk := logging.FromContext(ctx)
-
-	switch {
-	case len(args) == 1:
-		// shop a paginator of all aliases
-		p := dgwidgets.NewPaginator(ctx.Value("Session").(*discordgo.Session), ctx.Value("ChannelID").(string))
-		p.Add(&discordgo.MessageEmbed{
-			Color: 0,
-
-			Fields: []*discordgo.MessageEmbedField{
-				{
-					Name: "Aliases",
-					Value: func() string {
-						var sortedAliases []string
-						for a := range aliasMap {
-							sortedAliases = append(sortedAliases, fmt.Sprintf("**%s**", a))
-						}
-						sort.Strings(sortedAliases)
-						for i := range sortedAliases {
-							sortedAliases[i] = fmt.Sprintf("%d) %s", i+2, sortedAliases[i])
-						}
-						return strings.Join(sortedAliases, "\n")
-					}(),
-				},
-			},
-		})
-
-		for aliasName, aliasValue := range aliasMap {
-			embed := &discordgo.MessageEmbed{
-				Title:       aliasName,
-				Description: aliasValue.Help(),
-			}
-
-			resp, err := http.Head(aliasValue.Help())
-			if err != nil {
-				p.Add(embed)
-				continue
-			}
-			defer resp.Body.Close()
-			content := strings.TrimPrefix(resp.Header.Get("Content-Type"), "image/")
-			if content == "gif" || content == "jpeg" || content == "png" {
-				embed.Image = &discordgo.MessageEmbedImage{
-					URL: aliasValue.Help(),
-				}
-			}
-			p.Add(embed)
-		}
-
-		p.SetPageFooters()
-		p.Loop = true
-		p.ColourWhenDone = 0xFF0000
-		p.DeleteReactionsWhenDone = true
-		p.Spawn()
-		p.Widget.Timeout = time.Minute * 5
-
-		return "", nil
-	case len(args) == 2:
-		// no version with 2 args
-		return "", errors.New("Too few arguments supplied. Refer to !help for usage")
-	default:
-		// has at least 3 args, so setting a new alias
-		var (
-			_, aliasExists   = aliasMap[args[1]]
-			_, commandExists = commMap[args[1]]
-		)
-		if aliasExists || commandExists {
-			return "", fmt.Errorf("%q is a registered command/alias and cannot be set as an alias", args[1])
-		}
-
-		aliasMap[args[1]] = &textCommand{
-			helpText: strings.Join(args[2:], " "),
-			command: func(_ context.Context, args []string) (string, error) {
-				return strings.Join(args[2:], " "), nil
-			},
-		}
-
-		savedAliases[args[1]] = strings.Join(args[2:], " ")
-		if err := WriteToStorage("./storage/aliases.json", savedAliases); err != nil {
-
-			return "", errors.New("Error writing alias to file")
-		}
-
-		if loggerOk {
-			l.Infof("Set an alias for %s => %s", args[1], strings.Join(args[2:], " "))
-		}
-
-		return fmt.Sprintf("Set an alias for %s => %s", args[1], strings.Join(args[2:], " ")), nil
-	}
-}
-
-// unAliasCommand takes an existing alias and removes it from the alias map
-func unAliasCommand(ctx context.Context, msg []string) (string, error) {
-	l, loggerOk := logging.FromContext(ctx)
-	if loggerOk {
-		l.Infof("Responding to unalias command")
-	}
-	if len(msg) != 2 {
-		return "", errors.New("Please indicate an alias to unset")
-	}
-	toRemove := msg[1]
-	if _, ok := savedAliases[toRemove]; !ok {
-		return "", fmt.Errorf("Alias %q doesn't exist", toRemove)
-	}
-
-	delete(savedAliases, toRemove)
-	delete(aliasMap, toRemove)
-
-	if err := WriteToStorage("./storage/aliases.json", savedAliases); err != nil {
-		return "", fmt.Errorf("Failed to removing alias from file: %s", err)
-	}
-
-	return fmt.Sprintf("Removing alias %q", toRemove), nil
 }

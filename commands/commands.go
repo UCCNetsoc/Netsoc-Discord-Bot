@@ -3,6 +3,7 @@ package commands
 import (
 	"context"
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/bwmarrin/discordgo"
@@ -11,10 +12,6 @@ import (
 var (
 	// commMap maps the name of a command to the function which executes the command
 	commMap map[string]Command
-	// aliasMap maps the name of an alias to the function which returns the aliased value
-	aliasMap map[string]Command
-	// savedAliases stores all shortcut alias commands
-	savedAliases = map[string]string{}
 )
 
 // HelpCommand is the name of the command which lists the commands available
@@ -31,6 +28,12 @@ type Command interface {
 type textCommand struct {
 	command  func(ctx context.Context, args []string) (string, error)
 	helpText string
+}
+
+// commandFunc returns the internal user-defined command function. This is used for
+// testing mainly.
+func (c *textCommand) commandFunc() func(ctx context.Context, args []string) (string, error) {
+	return c.command
 }
 
 // Help implements Command.Help
@@ -84,18 +87,10 @@ func (c *embedCommand) Exec(ctx context.Context, s *discordgo.Session, m *discor
 }
 
 func init() {
-	commMap = map[string]Command{}
-	aliasMap = map[string]Command{}
-
-	LoadFromStorage("storage/aliases.json", &savedAliases)
-
-	for aliasName, aliasValue := range savedAliases {
-		aliasMap[aliasName] = &textCommand{
-			helpText: aliasValue,
-			command: func(_ context.Context, args []string) (string, error) {
-				return commMap[args[0]].Help(), nil
-			},
-		}
+	commMap = make(map[string]Command)
+	commMap, err := withAliasCommands(commMap)
+	if err != nil {
+		log.Fatalf("Failed to initilise alias commands: %s", err)
 	}
 
 	// Put registered commands after alias registration
@@ -145,7 +140,6 @@ func init() {
 // Execute parses a msg and executes the command, if it exists.
 func Execute(ctx context.Context, s *discordgo.Session, m *discordgo.MessageCreate, msg string) error {
 	args := strings.Fields(msg)
-
 	if c, ok := commMap[args[0]]; ok {
 		// Ensure user has permission to use this command
 		if !IsAllowed(ctx, s, m.Author.ID, args[0]) {
@@ -155,16 +149,9 @@ func Execute(ctx context.Context, s *discordgo.Session, m *discordgo.MessageCrea
 			return fmt.Errorf("%q is not allowed to execute the config command", m.Author)
 		}
 		ctx = context.WithValue(ctx, "ChannelID", m.ChannelID)
-		ctx = context.WithValue(ctx, "session", s)
+		ctx = context.WithValue(ctx, "Session", s)
 		if err := c.Exec(ctx, s, m, args); err != nil {
 			return fmt.Errorf("failed to execute command: %s", err)
-		}
-		return nil
-	}
-
-	if a, ok := aliasMap[args[0]]; ok {
-		if _, err := s.ChannelMessageSend(m.ChannelID, a.Help()); err != nil {
-			return fmt.Errorf("Failed to send message to the channal %q: %s", m.ChannelID, err)
 		}
 		return nil
 	}
