@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/bwmarrin/discordgo"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -70,5 +71,42 @@ func TestInspireCommand(t *testing.T) {
 	}
 	if !strings.Contains(got, quoteAuthor) {
 		t.Errorf("Response did not contain the quote author: %q", got)
+	}
+}
+
+func TestShowHelpCommand_SingleCommand(t *testing.T) {
+	var (
+		testCommandName = "test-command"
+		testCommand     = &textCommand{
+			command: func(context.Context, []string) (string, error) {
+				return "sometext", nil
+			},
+			helpText: "helptext",
+		}
+	)
+	commMap[testCommandName] = testCommand
+
+	got, err := showHelpCommand(context.Background(), []string{"help", testCommandName})
+	if err != nil {
+		t.Fatalf("showHelpCommand error: %s", err)
+	}
+
+	want := &discordgo.MessageEmbed{
+		Color: 0,
+		Fields: []*discordgo.MessageEmbedField{
+			{Name: testCommandName, Value: testCommand.Help()},
+		},
+	}
+
+	assert.Equal(t, want, got)
+}
+
+func TestShowHelpCommand_AllCommands(t *testing.T) {
+	got, err := showHelpCommand(context.Background(), []string{"help"})
+	if err != nil {
+		t.Fatalf("showHelpCommand error: %s", err)
+	}
+	if len(got.Fields) != len(commMap) {
+		t.Errorf("Did not give help for all commands: %v", got.Fields)
 	}
 }

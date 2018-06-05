@@ -122,10 +122,10 @@ func showHelpCommand(ctx context.Context, args []string) (*discordgo.MessageEmbe
 	}
 
 	if len(args) == 2 {
+		// getting help about a specific command
 		if comm, ok := commMap[args[1]]; ok {
 			return &discordgo.MessageEmbed{
 				Color: 0,
-
 				Fields: []*discordgo.MessageEmbedField{
 					{Name: args[1], Value: comm.Help()},
 				},
@@ -135,21 +135,17 @@ func showHelpCommand(ctx context.Context, args []string) (*discordgo.MessageEmbe
 		return nil, fmt.Errorf("Failed to find command %q", args[1])
 	}
 
+	// getting help about all commands
+	var allCommands []*discordgo.MessageEmbedField
+	for name, c := range commMap {
+		allCommands = append(allCommands, &discordgo.MessageEmbedField{
+			Name:  name,
+			Value: c.Help(),
+		})
+	}
 	return &discordgo.MessageEmbed{
-		Color: 0,
-
-		Fields: func() []*discordgo.MessageEmbedField {
-			var out []*discordgo.MessageEmbedField
-
-			for name, c := range commMap {
-				out = append(out, &discordgo.MessageEmbedField{
-					Name:  name,
-					Value: c.Help(),
-				})
-			}
-
-			return out
-		}(),
+		Color:  0,
+		Fields: allCommands,
 	}, nil
 }
 
