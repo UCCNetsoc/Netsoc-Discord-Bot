@@ -91,8 +91,11 @@ func aliasCommand(ctx context.Context, args []string) (string, error) {
 	if len(args) == 2 {
 		return "", errors.New("Too few arguments supplied. Refer to !help for usage")
 	}
+
+	// one argument will respond with a paginator which details all the aliases
+	// in existence and allows the discord user to scroll through them.
 	if len(args) == 1 {
-		// shop a paginator of all aliases
+		// show a paginator of all aliases
 		p := dgwidgets.NewPaginator(
 			ctx.Value(messageContextValue("Session")).(*discordgo.Session),
 			ctx.Value(messageContextValue("ChannelID")).(string))
@@ -123,6 +126,7 @@ func aliasCommand(ctx context.Context, args []string) (string, error) {
 				Description: aliasValue,
 			}
 
+			// if the link is to an image, we add the image itself to the embed
 			resp, err := http.Head(aliasValue)
 			if err != nil {
 				p.Add(embed)
@@ -142,12 +146,15 @@ func aliasCommand(ctx context.Context, args []string) (string, error) {
 		p.Loop = true
 		p.ColourWhenDone = 0xFF0000
 		p.DeleteReactionsWhenDone = true
-		p.Spawn()
-		p.Widget.Timeout = time.Minute * 5
-
+		p.Widget.Timeout = 2 * time.Minute
+		if err := p.Spawn(); err != nil {
+			return "", fmt.Errorf("Failed to spawn paginator: %s", err)
+		}
 		return "", nil
 	}
-	// has at least 3 args, so setting a new alias
+
+	// if we have 3 or more arguments, it means we are setting a new alias. The
+	// first argument is the 'alias' keyword, then the alias-key and then the alias-value.
 	var (
 		_, aliasExists   = aliasMap[args[1]]
 		_, commandExists = commMap[args[1]]
