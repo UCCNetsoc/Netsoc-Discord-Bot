@@ -127,3 +127,24 @@ func TestConfigCommand(t *testing.T) {
 
 	assert.Equal(t, want, got)
 }
+
+func TestInfoCommand(t *testing.T) {
+	embed, err := infoCommand(context.Background(), []string{"config"})
+	if err != nil {
+		t.Fatalf("infoCommand error: %s", err)
+	}
+
+	var fieldNames []string
+	for _, field := range embed.Fields {
+		fieldNames = append(fieldNames, field.Name)
+	}
+
+	wantFields := []string{
+		"Memory Usage:",
+		"Goroutines:",
+		"Go Version:",
+		"Usable Cores:",
+	}
+
+	assert.ElementsMatch(t, wantFields, fieldNames)
+}
