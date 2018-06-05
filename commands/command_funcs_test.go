@@ -48,3 +48,27 @@ func TestMinecraftCommand(t *testing.T) {
 		t.Errorf("Response didn't say that 'nobody' was online: %q", got)
 	}
 }
+
+func TestInspireCommand(t *testing.T) {
+	var (
+		quoteText   = "If you think your users are idiots, only idiots will use it."
+		quoteAuthor = "Linus Torvalds"
+	)
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintf(w, `{"quoteText": %q, "quoteAuthor":%q}`, quoteText, quoteAuthor)
+	}))
+	defer ts.Close()
+
+	inspirationalQuotesAPIURL = ts.URL
+	got, err := inspireCommand(context.Background(), []string{"inspire"})
+	if err != nil {
+		t.Fatalf("inspireCommand error: %s", err)
+	}
+
+	if !strings.Contains(got, quoteText) {
+		t.Errorf("Response did not contain the quote: %q", got)
+	}
+	if !strings.Contains(got, quoteAuthor) {
+		t.Errorf("Response did not contain the quote author: %q", got)
+	}
+}

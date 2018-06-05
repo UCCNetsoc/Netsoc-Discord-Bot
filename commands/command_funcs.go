@@ -16,7 +16,10 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
-var minecraftAPIURL = "http://minecraft.netsoc.co/standalone/dynmap_NetsocCraft.json"
+var (
+	minecraftAPIURL           = "http://minecraft.netsoc.co/standalone/dynmap_NetsocCraft.json"
+	inspirationalQuotesAPIURL = "http://api.forismatic.com/api/1.0/"
+)
 
 // pingCommand is a basic command which will responds "Pong!" to any ping.
 func pingCommand(ctx context.Context, _ []string) (string, error) {
@@ -80,7 +83,7 @@ func inspireCommand(ctx context.Context, _ []string) (string, error) {
 		l.Infof("Responding to inspire command", nil)
 	}
 
-	resp, err := http.PostForm("http://api.forismatic.com/api/1.0/",
+	resp, err := http.PostForm(inspirationalQuotesAPIURL,
 		url.Values{
 			"method": {"getQuote"},
 			"format": {"json"},
