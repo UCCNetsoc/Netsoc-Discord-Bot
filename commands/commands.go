@@ -146,7 +146,7 @@ func Execute(ctx context.Context, s *discordgo.Session, m *discordgo.MessageCrea
 			if _, err := s.ChannelMessageSend(m.ChannelID, "You do not have permissions to use this command."); err != nil {
 				return fmt.Errorf("Failed to send permssion denial message to the channal %q: %s", m.ChannelID, err)
 			}
-			return fmt.Errorf("%q is not allowed to execute the config command", m.Author)
+			return fmt.Errorf("%q is not allowed to execute the command %q", m.Author, args[0])
 		}
 		ctx = context.WithValue(ctx, "ChannelID", m.ChannelID)
 		ctx = context.WithValue(ctx, "Session", s)

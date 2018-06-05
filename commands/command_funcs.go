@@ -80,7 +80,7 @@ func minecraftCommand(ctx context.Context, _ []string) (string, error) {
 func inspireCommand(ctx context.Context, _ []string) (string, error) {
 	l, loggerOk := logging.FromContext(ctx)
 	if loggerOk {
-		l.Infof("Responding to inspire command", nil)
+		l.Infof("Responding to inspire command")
 	}
 
 	resp, err := http.PostForm(inspirationalQuotesAPIURL,
@@ -151,9 +151,8 @@ func showHelpCommand(ctx context.Context, args []string) (*discordgo.MessageEmbe
 
 // configCommand returns a message with the current configuration of the bot
 func configCommand(ctx context.Context, _ []string) (*discordgo.MessageEmbed, error) {
-	l, loggerOk := logging.FromContext(ctx)
-	if loggerOk {
-		l.Infof("Responding to config command", nil)
+	if l, ok := logging.FromContext(ctx); ok {
+		l.Infof("Responding to config command")
 	}
 
 	return &discordgo.MessageEmbed{
@@ -167,6 +166,10 @@ func configCommand(ctx context.Context, _ []string) (*discordgo.MessageEmbed, er
 
 // infoCommand returns a message with the current resource usage of the bot
 func infoCommand(ctx context.Context, _ []string) (*discordgo.MessageEmbed, error) {
+	if l, ok := logging.FromContext(ctx); ok {
+		l.Infof("Responding to info command")
+	}
+
 	var mem runtime.MemStats
 	runtime.ReadMemStats(&mem)
 

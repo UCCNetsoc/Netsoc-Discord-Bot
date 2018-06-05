@@ -84,6 +84,9 @@ func withAliasCommands(commMap map[string]Command) (map[string]Command, error) {
 // aliasCommand sets string => string shortcut that can be called later to print a value
 func aliasCommand(ctx context.Context, args []string) (string, error) {
 	l, loggerOk := logging.FromContext(ctx)
+	if loggerOk {
+		l.Infof("Responding to alias command")
+	}
 
 	if len(args) == 2 {
 		return "", errors.New("Too few arguments supplied. Refer to !help for usage")
@@ -189,6 +192,10 @@ func unAliasCommand(ctx context.Context, msg []string) (string, error) {
 	delete(commMap, toRemove)
 	if err := writeToStorage(); err != nil {
 		return "", fmt.Errorf("Failed to write new alias storage file: %s", err)
+	}
+
+	if loggerOk {
+		l.Infof("Removed alias %q", toRemove)
 	}
 	return fmt.Sprintf("Removing alias %q", toRemove), nil
 }
