@@ -18,6 +18,10 @@ var (
 // and can give information about a specific command.
 const HelpCommand = "help"
 
+// messageContextValue is used to wrap the type of any values stored in the
+// context propogated to a command function.
+type messageContextValue string
+
 // Command defines functions which every kind of command needs
 type Command interface {
 	Help() string
@@ -148,8 +152,8 @@ func Execute(ctx context.Context, s *discordgo.Session, m *discordgo.MessageCrea
 			}
 			return fmt.Errorf("%q is not allowed to execute the command %q", m.Author, args[0])
 		}
-		ctx = context.WithValue(ctx, "ChannelID", m.ChannelID)
-		ctx = context.WithValue(ctx, "Session", s)
+		ctx = context.WithValue(ctx, messageContextValue("ChannelID"), m.ChannelID)
+		ctx = context.WithValue(ctx, messageContextValue("Session"), s)
 		if err := c.Exec(ctx, s, m, args); err != nil {
 			return fmt.Errorf("failed to execute command: %s", err)
 		}

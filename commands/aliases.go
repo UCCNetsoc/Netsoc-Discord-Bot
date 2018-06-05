@@ -93,7 +93,9 @@ func aliasCommand(ctx context.Context, args []string) (string, error) {
 	}
 	if len(args) == 1 {
 		// shop a paginator of all aliases
-		p := dgwidgets.NewPaginator(ctx.Value("Session").(*discordgo.Session), ctx.Value("ChannelID").(string))
+		p := dgwidgets.NewPaginator(
+			ctx.Value(messageContextValue("Session")).(*discordgo.Session),
+			ctx.Value(messageContextValue("ChannelID")).(string))
 		p.Add(&discordgo.MessageEmbed{
 			Color: 0,
 
