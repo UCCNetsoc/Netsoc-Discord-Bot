@@ -9,13 +9,17 @@ import (
 )
 
 // IsAllowed determines if the given user has a role set out in the permissions config
-func IsAllowed(ctx context.Context, s *discordgo.Session, authorID string, permissionKey string) bool {
+func IsAllowed(ctx context.Context, s *discordgo.Session, authorID string, command string) bool {
 	l, loggerOk := logging.FromContext(ctx)
 	conf := config.GetConfig()
 	member, err := s.GuildMember(conf.GuildID, authorID)
 
 	if err != nil && loggerOk {
 		l.Infof("Failed to retrieve Member info. Error: %q", err)
+	}
+
+	if _, hasCommand := conf.Permissions[command]; !hasCommand {
+		return true
 	}
 
 	// Check the user has a role defined in the config for this command
@@ -33,7 +37,7 @@ func IsAllowed(ctx context.Context, s *discordgo.Session, authorID string, permi
 			break
 		}
 
-		if StringInSlice(roleInfo.Name, conf.Permissions[permissionKey]) {
+		if StringInSlice(roleInfo.Name, conf.Permissions[command]) {
 			isAllowed = true
 			break
 		}
