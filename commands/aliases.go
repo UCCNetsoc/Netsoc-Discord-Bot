@@ -20,12 +20,8 @@ import (
 var (
 	// note that this is relative to the $(pwd) as opposed to the `commands` directory
 	aliasStorageFilepath = "aliases.json"
-	aliasMap             map[string]string
+	aliasMap             = make(map[string]string)
 )
-
-func init() {
-	aliasMap = make(map[string]string)
-}
 
 // loadFromStorage opens the alias file at `aliasStorageFilepath` and loads
 // the aliases into `aliasMap`.
