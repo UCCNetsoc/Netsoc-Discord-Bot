@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/UCCNetworkingSociety/Netsoc-Discord-Bot/config"
 	"github.com/bwmarrin/discordgo"
 	"github.com/stretchr/testify/assert"
 )
@@ -109,4 +110,20 @@ func TestShowHelpCommand_AllCommands(t *testing.T) {
 	if len(got.Fields) != len(commMap) {
 		t.Errorf("Did not give help for all commands: %v", got.Fields)
 	}
+}
+
+func TestConfigCommand(t *testing.T) {
+	got, err := configCommand(context.Background(), []string{"config"})
+	if err != nil {
+		t.Errorf("configCommand error: %s", err)
+	}
+	want := &discordgo.MessageEmbed{
+		Color: 0,
+
+		Fields: []*discordgo.MessageEmbedField{
+			{Name: "Config:", Value: config.GetConfig().String(), Inline: true},
+		},
+	}
+
+	assert.Equal(t, want, got)
 }
