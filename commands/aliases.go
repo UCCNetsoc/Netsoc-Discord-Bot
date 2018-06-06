@@ -67,6 +67,7 @@ func withAliasCommands(commMap map[string]Command) (map[string]Command, error) {
 	}
 
 	for aliasName, aliasValue := range aliasMap {
+		aliasValue := aliasValue
 		commMap[aliasName] = &textCommand{
 			helpText: aliasValue,
 			command: func(_ context.Context, _ []string) (string, error) {
