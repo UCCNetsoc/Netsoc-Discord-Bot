@@ -20,8 +20,23 @@ import (
 var (
 	// note that this is relative to the $(pwd) as opposed to the `commands` directory
 	aliasStorageFilepath = "aliases.json"
-	aliasMap             = make(map[string]string)
+	aliasMap             = make(map[string]*alias)
 )
+
+type aliasKind int
+
+const (
+	// if adding a new kind, add it *after* the last one in the list or you will
+	// break the existing `aliases.json` file
+	kindIMAGE aliasKind = iota
+	kindOTHER
+)
+
+// alias represents the alias value and meta information used to display the alias
+type alias struct {
+	Value string    `json: "Value"`
+	Kind  aliasKind `json: "Kind"`
+}
 
 // loadFromStorage opens the alias file at `aliasStorageFilepath` and loads
 // the aliases into `aliasMap`.
@@ -40,7 +55,6 @@ func loadFromStorage() error {
 	if err := json.Unmarshal(file, &aliasMap); err != nil {
 		return fmt.Errorf("failed to unmarshal alias JSON: %s", err)
 	}
-
 	return nil
 }
 
@@ -66,12 +80,12 @@ func withAliasCommands(commMap map[string]Command) (map[string]Command, error) {
 		return nil, fmt.Errorf("failed to load aliases from storage: %s", err)
 	}
 
-	for aliasName, aliasValue := range aliasMap {
-		aliasValue := aliasValue
+	for aliasName, info := range aliasMap {
+		info := info
 		commMap[aliasName] = &textCommand{
-			helpText: aliasValue,
+			helpText: info.Value,
 			command: func(_ context.Context, _ []string) (string, error) {
-				return aliasValue, nil
+				return info.Value, nil
 			},
 		}
 	}
@@ -96,44 +110,41 @@ func aliasCommand(ctx context.Context, args []string) (string, error) {
 		p := dgwidgets.NewPaginator(
 			ctx.Value(messageContextValue("Session")).(*discordgo.Session),
 			ctx.Value(messageContextValue("ChannelID")).(string))
+
+		var sortedAliases []string
+		for a := range aliasMap {
+			sortedAliases = append(sortedAliases, a)
+		}
+		sort.Strings(sortedAliases)
+
+		var aliasListing []string
+		for i, a := range sortedAliases {
+			aliasListing = append(aliasListing, fmt.Sprintf("%d) **%s**", i+2, a))
+		}
+
 		p.Add(&discordgo.MessageEmbed{
 			Color: 0,
 
 			Fields: []*discordgo.MessageEmbedField{
 				{
-					Name: "Aliases",
-					Value: func() string {
-						var sortedAliases []string
-						for a := range aliasMap {
-							sortedAliases = append(sortedAliases, fmt.Sprintf("**%s**", a))
-						}
-						sort.Strings(sortedAliases)
-						for i := range sortedAliases {
-							sortedAliases[i] = fmt.Sprintf("%d) %s", i+2, sortedAliases[i])
-						}
-						return strings.Join(sortedAliases, "\n")
-					}(),
+					Name:  "Aliases",
+					Value: strings.Join(aliasListing, "\n"),
 				},
 			},
 		})
 
-		for aliasName, aliasValue := range aliasMap {
+		for _, aliasName := range sortedAliases {
+			info := aliasMap[aliasName]
 			embed := &discordgo.MessageEmbed{
 				Title:       aliasName,
-				Description: aliasValue,
+				Description: info.Value,
 			}
 
 			// if the link is to an image, we add the image itself to the embed
-			resp, err := http.Head(aliasValue)
-			if err != nil {
-				p.Add(embed)
-				continue
-			}
-			defer resp.Body.Close()
-			content := strings.TrimPrefix(resp.Header.Get("Content-Type"), "image/")
-			if content == "gif" || content == "jpeg" || content == "png" {
+			kind := info.Kind
+			if kind == kindIMAGE {
 				embed.Image = &discordgo.MessageEmbedImage{
-					URL: aliasValue,
+					URL: info.Value,
 				}
 			}
 			p.Add(embed)
@@ -160,24 +171,41 @@ func aliasCommand(ctx context.Context, args []string) (string, error) {
 		return "", fmt.Errorf("%q is a registered command/alias and cannot be set as an alias", args[1])
 	}
 
+	newAliasValue := strings.Join(args[2:], " ")
+	newAlias := &alias{Value: newAliasValue}
+
+	resp, err := http.Head(newAliasValue)
+	if err == nil {
+		// this is a URL. We now check if it is an image
+		defer resp.Body.Close()
+		contentType := resp.Header.Get("Content-Type")
+		switch {
+		case strings.Contains(contentType, "image"):
+			newAlias.Kind = kindIMAGE
+		default:
+			newAlias.Kind = kindOTHER
+		}
+	} else {
+		newAlias.Kind = kindOTHER
+	}
+
 	// record the new alias in the command map and save it to storage
-	aliasMap[args[1]] = strings.Join(args[2:], " ")
+	aliasMap[args[1]] = newAlias
 	if err := writeToStorage(); err != nil {
 		return "", fmt.Errorf("Failed to write new alias to storage file: %s", err)
 	}
 
 	// reload the command map in commands.go to encorporate the new alias command
-	var err error
 	commMap, err = withAliasCommands(commMap)
 	if err != nil {
 		return "", fmt.Errorf("Failed to reload the command map with the new alias: %s", err)
 	}
 
 	if loggerOk {
-		l.Infof("Set an alias for %s => %s", args[1], strings.Join(args[2:], " "))
+		l.Infof("Set an alias for %s => %s", args[1], newAliasValue)
 	}
 
-	return fmt.Sprintf("Set an alias for %s => %s", args[1], strings.Join(args[2:], " ")), nil
+	return fmt.Sprintf("Set an alias for %s => %s", args[1], newAliasValue), nil
 
 }
 

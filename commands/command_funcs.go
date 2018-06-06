@@ -138,6 +138,9 @@ func showHelpCommand(ctx context.Context, args []string) (*discordgo.MessageEmbe
 	// getting help about all commands
 	var allCommands []*discordgo.MessageEmbedField
 	for name, c := range commMap {
+		if _, isAlias := aliasMap[name]; isAlias {
+			continue
+		}
 		allCommands = append(allCommands, &discordgo.MessageEmbedField{
 			Name:  name,
 			Value: c.Help(),
