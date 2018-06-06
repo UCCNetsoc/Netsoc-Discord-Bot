@@ -103,12 +103,29 @@ func TestShowHelpCommand_SingleCommand(t *testing.T) {
 }
 
 func TestShowHelpCommand_AllCommands(t *testing.T) {
+	testAliases := map[string]*alias{
+		"test-alias": &alias{Value: "testValue", Kind: kindOTHER},
+	}
+	cleanup, err := createSampleAliases(testAliases)
+	if err != nil {
+		t.Fatalf("Failed to create sample alias file: %s", err)
+	}
+	defer cleanup()
+
+	commMap, err := withAliasCommands(commMap)
+	if err != nil {
+		t.Fatalf("withAliasCommands: %s", err)
+	}
+
 	got, err := showHelpCommand(context.Background(), []string{"help"})
 	if err != nil {
 		t.Fatalf("showHelpCommand error: %s", err)
 	}
-	if len(got.Fields) != len(commMap) {
-		t.Errorf("Did not give help for all commands: %v", got.Fields)
+	// we ignore aliases in the help command
+	wantLen := len(commMap) - len(aliasMap)
+	gotLen := len(got.Fields)
+	if wantLen != gotLen {
+		t.Errorf("Did not give help for all commands: wanted %d; got %d", wantLen, gotLen)
 	}
 }
 
