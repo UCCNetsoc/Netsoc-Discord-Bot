@@ -45,7 +45,8 @@ func TestLoadFromStorage(t *testing.T) {
 
 func TestWithAliasCommands(t *testing.T) {
 	testAliases := map[string]string{
-		"testKey": "testValue",
+		"testKey":  "testValue",
+		"testKey1": "testValue1",
 	}
 	cleanup, err := createSampleAliases(testAliases)
 	if err != nil {
@@ -58,19 +59,21 @@ func TestWithAliasCommands(t *testing.T) {
 		t.Fatalf("withAliasCommands: %s", err)
 	}
 
-	c, ok := commMap["testKey"]
-	if !ok {
-		t.Fatal("Command map doesn't contain a command named witht he alias key")
-	}
+	for aliasKey := range testAliases {
+		c, ok := commMap[aliasKey]
+		if !ok {
+			t.Fatal("Command map doesn't contain a command named with the alias key")
+		}
 
-	aliasCommandFunc := c.(*textCommand).commandFunc()
-	got, err := aliasCommandFunc(context.Background(), []string{"test1"})
-	if err != nil {
-		t.Fatalf("Failed to run internal alias command function: %s", err)
-	}
+		aliasCommandFunc := c.(*textCommand).commandFunc()
+		got, err := aliasCommandFunc(context.Background(), []string{aliasKey})
+		if err != nil {
+			t.Fatalf("Failed to run internal alias command function: %s", err)
+		}
 
-	if got != "testValue" {
-		t.Errorf("Want 'testValue' from alias function; got %q", got)
+		if want := testAliases[aliasKey]; got != want {
+			t.Errorf("Wrong alias value: got %q; want %q", got, want)
+		}
 	}
 }
 
