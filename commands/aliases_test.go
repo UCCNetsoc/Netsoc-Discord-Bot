@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func createSampleAliases(testAliasMap map[string]string) (func(), error) {
+func createSampleAliases(testAliasMap map[string]*alias) (func(), error) {
 	old := aliasStorageFilepath
 	aliasStorageFilepath = "test.json"
 	aliasMap = testAliasMap
@@ -25,9 +25,9 @@ func createSampleAliases(testAliasMap map[string]string) (func(), error) {
 }
 
 func TestLoadFromStorage(t *testing.T) {
-	aliasMapWant := map[string]string{
-		"test": "test1",
-		"key":  "value",
+	aliasMapWant := map[string]*alias{
+		"test": &alias{Value: "test1", Kind: kindOTHER},
+		"key":  &alias{Value: "value", Kind: kindOTHER},
 	}
 	cleanup, err := createSampleAliases(aliasMapWant)
 	if err != nil {
@@ -35,7 +35,7 @@ func TestLoadFromStorage(t *testing.T) {
 	}
 	defer cleanup()
 
-	aliasMap = make(map[string]string)
+	aliasMap = make(map[string]*alias)
 	if err := loadFromStorage(); err != nil {
 		t.Errorf("LoadFromStorage error: %s", err)
 	}
@@ -44,9 +44,9 @@ func TestLoadFromStorage(t *testing.T) {
 }
 
 func TestWithAliasCommands(t *testing.T) {
-	testAliases := map[string]string{
-		"testKey":  "testValue",
-		"testKey1": "testValue1",
+	testAliases := map[string]*alias{
+		"testKey":  &alias{Value: "testValue", Kind: kindOTHER},
+		"testKey1": &alias{Value: "testValue1", Kind: kindOTHER},
 	}
 	cleanup, err := createSampleAliases(testAliases)
 	if err != nil {
@@ -71,60 +71,68 @@ func TestWithAliasCommands(t *testing.T) {
 			t.Fatalf("Failed to run internal alias command function: %s", err)
 		}
 
-		if want := testAliases[aliasKey]; got != want {
+		if want := testAliases[aliasKey].Value; got != want {
 			t.Errorf("Wrong alias value: got %q; want %q", got, want)
 		}
 	}
 }
 
 func TestAliasCommand_SetNewAlias(t *testing.T) {
-	testAliases := make(map[string]string)
+	testAliases := make(map[string]*alias)
 	cleanup, err := createSampleAliases(testAliases)
 	if err != nil {
 		t.Fatalf("Failed to create sample alias file: %s", err)
 	}
 	defer cleanup()
 
-	var (
-		aliasKey   = "aliasCommandTest"
-		aliasValue = "test2"
-	)
-	if _, err := aliasCommand(context.Background(), []string{"alias", aliasKey, aliasValue}); err != nil {
-		t.Fatalf("aliasCommand error: %s", err)
+	tests := []struct {
+		key, value string
+		kind       aliasKind
+	}{
+		{"test1", "test1value", kindOTHER},
+		{"test2", "https://media.giphy.com/media/3oz8xODcLLAxb8Qyju/giphy.gif", kindIMAGE},
 	}
+	for i, ts := range tests {
+		if _, err := aliasCommand(context.Background(), []string{"alias", ts.key, ts.value}); err != nil {
+			t.Fatalf("aliasCommand error: %s", err)
+		}
 
-	gotValue, inAliasMap := aliasMap[aliasKey]
-	if !inAliasMap {
-		t.Error("New alias not in aliasMap")
-	}
-	if gotValue != aliasValue {
-		t.Errorf("New alias has wrong value. Got %q; want %q", gotValue, aliasValue)
-	}
+		got, inAliasMap := aliasMap[ts.key]
+		if !inAliasMap {
+			t.Errorf("%d) New alias not in aliasMap", i)
+		}
+		if got.Value != ts.value {
+			t.Errorf("%d) New alias has wrong value: got %q; want %q", i, got.Value, ts.value)
+		}
+		if got.Kind != ts.kind {
+			t.Errorf("%d) New alias has wrong kind: got %q; want %q", i, got.Kind, ts.kind)
+		}
 
-	if _, inCommMap := commMap[aliasKey]; !inCommMap {
-		t.Error("New alias not in commMap")
-	}
+		if _, inCommMap := commMap[ts.key]; !inCommMap {
+			t.Errorf("%d) New alias not in commMap", i)
+		}
 
-	aliasMap = make(map[string]string)
-	if err := loadFromStorage(); err != nil {
-		t.Fatalf("Failed to load alias storage file: %s", err)
+		aliasMap = make(map[string]*alias)
+		if err := loadFromStorage(); err != nil {
+			t.Errorf("%d) Failed to load alias storage file: %s", i, err)
+			continue
+		}
+		got, inAliasMap = aliasMap[ts.key]
+		if !inAliasMap {
+			t.Errorf("%d) New alias not written to storage", i)
+		}
+		if got.Value != ts.value {
+			t.Errorf("%d) New alias not written to storage correctly. Got %q; want %q", i, got.Value, ts.value)
+		}
 	}
-	gotValue, inAliasMap = aliasMap[aliasKey]
-	if !inAliasMap {
-		t.Error("New alias not written to storage")
-	}
-	if gotValue != aliasValue {
-		t.Errorf("New alias not written to storage correctly. Got %q; want %q", gotValue, aliasValue)
-	}
-
 }
 
 func TestUnAliasCommand(t *testing.T) {
 	var (
 		removeAlias = "unaliasCommandTest"
-		removeValue = "some val"
+		removeValue = &alias{Value: "some val"}
 	)
-	testAliases := map[string]string{removeAlias: removeValue}
+	testAliases := map[string]*alias{removeAlias: removeValue}
 	cleanup, err := createSampleAliases(testAliases)
 	if err != nil {
 		t.Fatalf("Failed to create sample alias file: %s", err)
@@ -143,7 +151,7 @@ func TestUnAliasCommand(t *testing.T) {
 		t.Error("Alias command not removed from commMap")
 	}
 
-	aliasMap = make(map[string]string)
+	aliasMap = make(map[string]*alias)
 	if err := loadFromStorage(); err != nil {
 		t.Fatalf("Failed to load alias storage file: %s", err)
 	}
