@@ -13,8 +13,8 @@ import (
 	"time"
 
 	"github.com/Necroforger/dgwidgets"
-	"github.com/UCCNetworkingSociety/Netsoc-Discord-Bot/logging"
 	"github.com/bwmarrin/discordgo"
+	"github.com/golang/glog"
 )
 
 var (
@@ -94,10 +94,7 @@ func withAliasCommands(commMap map[string]Command) (map[string]Command, error) {
 
 // aliasCommand sets string => string shortcut that can be called later to print a value
 func aliasCommand(ctx context.Context, args []string) (string, error) {
-	l, loggerOk := logging.FromContext(ctx)
-	if loggerOk {
-		l.Infof("Responding to alias command")
-	}
+	glog.Infof("Responding to alias command")
 
 	if len(args) == 2 {
 		return "", errors.New("Too few arguments supplied. Refer to !help for usage")
@@ -201,20 +198,15 @@ func aliasCommand(ctx context.Context, args []string) (string, error) {
 		return "", fmt.Errorf("Failed to reload the command map with the new alias: %s", err)
 	}
 
-	if loggerOk {
-		l.Infof("Set an alias for %s => %s", args[1], newAliasValue)
-	}
-
+	glog.Infof("Set an alias for %s => %s", args[1], newAliasValue)
 	return fmt.Sprintf("Set an alias for %s => %s", args[1], newAliasValue), nil
 
 }
 
 // unAliasCommand takes an existing alias and removes it from the alias map
 func unAliasCommand(ctx context.Context, msg []string) (string, error) {
-	l, loggerOk := logging.FromContext(ctx)
-	if loggerOk {
-		l.Infof("Responding to unalias command")
-	}
+	glog.Infof("Responding to unalias command")
+
 	if len(msg) != 2 {
 		return "", errors.New("Please indicate an alias to unset")
 	}
@@ -228,8 +220,6 @@ func unAliasCommand(ctx context.Context, msg []string) (string, error) {
 		return "", fmt.Errorf("Failed to write new alias storage file: %s", err)
 	}
 
-	if loggerOk {
-		l.Infof("Removed alias %q", toRemove)
-	}
+	glog.Infof("Removed alias %q", toRemove)
 	return fmt.Sprintf("Removing alias %q", toRemove), nil
 }

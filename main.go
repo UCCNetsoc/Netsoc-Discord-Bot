@@ -3,14 +3,14 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"flag"
 	"fmt"
-	"log"
 	"net/http"
 	"strings"
 
 	"github.com/UCCNetworkingSociety/Netsoc-Discord-Bot/commands"
 	"github.com/UCCNetworkingSociety/Netsoc-Discord-Bot/config"
-	"github.com/UCCNetworkingSociety/Netsoc-Discord-Bot/logging"
+	"github.com/golang/glog"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/fsnotify/fsnotify"
@@ -18,7 +18,6 @@ import (
 
 var (
 	conf *config.Config
-	l    *logging.Logger
 	dg   *discordgo.Session
 )
 
@@ -29,60 +28,55 @@ type handlerWithError func(w http.ResponseWriter, r *http.Request) error
 // ServeHTTP implements the http.Handler interface
 func (h handlerWithError) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	uri := r.URL.RequestURI()
-	l.Infof("Received request for %q", uri)
+	glog.Infof("Received request for %q", uri)
 	if err := h(w, r); err != nil {
 		http.Error(w, err.Error(), 500)
-		l.Errorf("Failed to handle request for %q: %s", uri, err)
+		glog.Errorf("Failed to handle request for %q: %s", uri, err)
 	}
 }
 
 func main() {
+	// this must be done for the glog library
+	flag.Parse()
+	defer glog.Flush()
+
 	if err := config.LoadConfig(); err != nil {
-		log.Fatalf("Failed to load configuration JSON: %s", err)
+		glog.Fatalf("Failed to load configuration JSON: %s", err)
 	}
 	conf = config.GetConfig()
 
-	var err error
-	l, err = logging.New()
+	glog.Infof("Starting bot..")
+	dg, err := discordgo.New("Bot " + conf.Token)
 	if err != nil {
-		log.Fatalf("Failed to create bot's logger: %s", err)
-	}
-	defer l.Close()
-
-	l.Infof("Starting bot..")
-	dg, err = discordgo.New("Bot " + conf.Token)
-	if err != nil {
-		l.Errorf("Failed to create Discord session: %s", err)
-		return
+		glog.Fatalf("Failed to create Discord session: %s", err)
 	}
 
 	dg.AddHandler(messageCreate)
 
 	if err := dg.Open(); err != nil {
-		l.Errorf("Failed to open websocket connection: %s", err)
-		return
+		glog.Fatalf("Failed to open websocket connection: %s", err)
 	}
 	defer dg.Close()
 
 	if err := dg.UpdateStatus(0, conf.Prefix+commands.HelpCommand); err != nil {
-		l.Errorf("Failed to set bot's status: %s", err)
-		return
+		glog.Fatalf("Failed to set bot's status: %s", err)
 	}
-	l.Infof("Bot successfully started")
+	glog.Infof("Bot successfully started")
 
-	l.Infof("Watching config.json")
+	glog.Infof("Watching config.json")
 	watcherDone, err := watchConfig()
 	if err != nil {
-		l.Errorf("Failed to create configuration file watcher: %s", err)
-		return
+		glog.Fatalf("Failed to create configuration file watcher: %s", err)
 	}
+	defer func() {
+		watcherDone <- struct{}{}
+	}()
 
-	l.Infof("Serving http server on %s", conf.BotHostName)
+	glog.Infof("Serving http server on %s", conf.BotHostName)
 	http.Handle("/help", handlerWithError(help))
 	http.Handle("/alert", handlerWithError(alertHandler))
 	if err := http.ListenAndServe(conf.BotHostName, nil); err != nil {
-		watcherDone <- struct{}{}
-		l.Errorf("Failed to serve HTTP: %s", err)
+		glog.Fatalf("Failed to serve HTTP: %s", err)
 	}
 }
 
@@ -146,15 +140,10 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	if m.Author.Bot || !strings.HasPrefix(m.Content, conf.Prefix) || strings.TrimPrefix(m.Content, conf.Prefix) == "" {
 		return
 	}
-
 	c := strings.TrimPrefix(m.Content, conf.Prefix)
-
-	l.Infof("Received command %q from %q", c, m.Author)
-
-	ctx := logging.NewContext(context.Background(), l)
-
-	if err := commands.Execute(ctx, s, m, c); err != nil {
-		l.Errorf("Failed to execute command %q: %s", c, err)
+	glog.Infof("Received command %q from %q", c, m.Author)
+	if err := commands.Execute(context.Background(), s, m, c); err != nil {
+		glog.Errorf("Failed to execute command %q: %s", c, err)
 	}
 }
 
@@ -164,7 +153,7 @@ func watchConfig() (chan struct{}, error) {
 	// creates a new file watcher
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
-		l.Errorf("Failed to create filesystem watcher for config file: %s", err)
+		return nil, fmt.Errorf("Failed to create filesystem watcher for config file: %s", err)
 	}
 
 	done := make(chan struct{})
@@ -174,15 +163,15 @@ func watchConfig() (chan struct{}, error) {
 			select {
 			// watch for events
 			case event := <-watcher.Events:
-				l.Infof("Watcher event recieved: %s", event)
+				glog.Infof("Watcher event recieved: %s", event)
 				config.LoadConfig()
 
 			// watch for errors
 			case err := <-watcher.Errors:
-				l.Errorf("Config file watcher error: %s", err)
+				glog.Errorf("Config file watcher error: %s", err)
 
 			case <-done:
-				l.Infof("Watcher shutting down")
+				glog.Infof("Watcher shutting down")
 				return
 			}
 		}
@@ -190,7 +179,7 @@ func watchConfig() (chan struct{}, error) {
 
 	// out of the box fsnotify can watch a single file, or a single directory
 	if err := watcher.Add("./config.json"); err != nil {
-		l.Errorf("Failed to add config file to watcher: %s", err)
+		glog.Errorf("Failed to add config file to watcher: %s", err)
 	}
 
 	return done, nil

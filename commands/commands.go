@@ -3,10 +3,10 @@ package commands
 import (
 	"context"
 	"fmt"
-	"log"
 	"strings"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/golang/glog"
 )
 
 var (
@@ -94,7 +94,7 @@ func init() {
 	commMap = make(map[string]Command)
 	commMap, err := withAliasCommands(commMap)
 	if err != nil {
-		log.Fatalf("Failed to initilise alias commands: %s", err)
+		glog.Fatalf("Failed to initilise alias commands: %s", err)
 	}
 
 	// Put registered commands after alias registration

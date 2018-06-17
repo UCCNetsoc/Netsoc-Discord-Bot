@@ -38,17 +38,8 @@ type Config struct {
 	GuildID     string `json:"guildID"`
 	SysAdminTag string `json:"sysAdminTag"`
 
-	// LogFiles dictate where our logs are stored
-	LogFiles LogFiles `json:"logFiles"`
-
 	// Defines which roles can execute commands (if applicable)
 	Permissions map[string][]string `json:"permissions"`
-}
-
-// LogFiles dictate the files/paths of the log files
-type LogFiles struct {
-	InfoLog  string `json:"info_log"`
-	ErrorLog string `json:"error_log"`
 }
 
 // String prints a string representation of the config
@@ -61,10 +52,6 @@ func (c Config) String() string {
 func init() {
 	conf = &Config{
 		Permissions: map[string][]string{},
-		LogFiles: LogFiles{
-			InfoLog:  "info.log",
-			ErrorLog: "error.log",
-		},
 	}
 }
 
