@@ -12,8 +12,8 @@ import (
 	"strconv"
 
 	"github.com/UCCNetworkingSociety/Netsoc-Discord-Bot/config"
-	"github.com/UCCNetworkingSociety/Netsoc-Discord-Bot/logging"
 	"github.com/bwmarrin/discordgo"
+	"github.com/golang/glog"
 )
 
 var (
@@ -23,19 +23,14 @@ var (
 
 // pingCommand is a basic command which will responds "Pong!" to any ping.
 func pingCommand(ctx context.Context, _ []string) (string, error) {
-	if l, ok := logging.FromContext(ctx); ok {
-		l.Infof("Responding 'Pong!' to ping command")
-	}
+	glog.Infof("Responding 'Pong!' to ping command")
 	return "Pong!", nil
 }
 
 // minecraftCommand checks the stats of minecraft.netsoc.co for that moment
 // data comes from http://minecraft.netsoc.co/standalone/dynmap_NetsocCraft.json
 func minecraftCommand(ctx context.Context, _ []string) (string, error) {
-	l, loggerOk := logging.FromContext(ctx)
-	if loggerOk {
-		l.Infof("Responding to minecraft command")
-	}
+	glog.Infof("Responding to minecraft command")
 
 	resp, err := http.Get(minecraftAPIURL)
 	if err != nil {
@@ -70,18 +65,13 @@ func minecraftCommand(ctx context.Context, _ []string) (string, error) {
 		msg += "```"
 	}
 
-	if loggerOk {
-		l.Infof("Sending minecraft information: %d users active", len(q.Players))
-	}
+	glog.Infof("Sending minecraft information: %d users active", len(q.Players))
 	return msg, nil
 }
 
 // inspireCommand gets an inspirational quote from forismatic.com
 func inspireCommand(ctx context.Context, _ []string) (string, error) {
-	l, loggerOk := logging.FromContext(ctx)
-	if loggerOk {
-		l.Infof("Responding to inspire command")
-	}
+	glog.Infof("Responding to inspire command")
 
 	resp, err := http.PostForm(inspirationalQuotesAPIURL,
 		url.Values{
@@ -108,18 +98,13 @@ func inspireCommand(ctx context.Context, _ []string) (string, error) {
 		return "", fmt.Errorf("Failed to parse response json %q: %s", string(body), err)
 	}
 
-	if loggerOk {
-		l.Infof("Sending quote %q", q.QuoteText)
-	}
-
+	glog.Infof("Sending quote %q", q.QuoteText)
 	return fmt.Sprintf("%q - %s", q.QuoteText, q.QuoteAuthor), nil
 }
 
 // showHelpCommand lists all of the commands available and explains what they do.
 func showHelpCommand(ctx context.Context, args []string) (*discordgo.MessageEmbed, error) {
-	if l, ok := logging.FromContext(ctx); ok {
-		l.Infof("Responding to help command")
-	}
+	glog.Infof("Responding to help command")
 
 	if len(args) == 2 {
 		// getting help about a specific command
@@ -154,9 +139,7 @@ func showHelpCommand(ctx context.Context, args []string) (*discordgo.MessageEmbe
 
 // configCommand returns a message with the current configuration of the bot
 func configCommand(ctx context.Context, _ []string) (*discordgo.MessageEmbed, error) {
-	if l, ok := logging.FromContext(ctx); ok {
-		l.Infof("Responding to config command")
-	}
+	glog.Infof("Responding to config command")
 
 	return &discordgo.MessageEmbed{
 		Color: 0,
@@ -169,9 +152,7 @@ func configCommand(ctx context.Context, _ []string) (*discordgo.MessageEmbed, er
 
 // infoCommand returns a message with the current resource usage of the bot
 func infoCommand(ctx context.Context, _ []string) (*discordgo.MessageEmbed, error) {
-	if l, ok := logging.FromContext(ctx); ok {
-		l.Infof("Responding to info command")
-	}
+	glog.Infof("Responding to info command")
 
 	var mem runtime.MemStats
 	runtime.ReadMemStats(&mem)

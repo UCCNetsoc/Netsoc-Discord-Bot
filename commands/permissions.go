@@ -4,18 +4,17 @@ import (
 	"context"
 
 	"github.com/UCCNetworkingSociety/Netsoc-Discord-Bot/config"
-	"github.com/UCCNetworkingSociety/Netsoc-Discord-Bot/logging"
 	"github.com/bwmarrin/discordgo"
+	"github.com/golang/glog"
 )
 
 // IsAllowed determines if the given user has a role set out in the permissions config
 func IsAllowed(ctx context.Context, s *discordgo.Session, authorID string, command string) bool {
-	l, loggerOk := logging.FromContext(ctx)
 	conf := config.GetConfig()
 	member, err := s.GuildMember(conf.GuildID, authorID)
-
-	if err != nil && loggerOk {
-		l.Infof("Failed to retrieve Member info. Error: %q", err)
+	if err != nil {
+		glog.Errorf("Failed to retrieve Member info. Error: %q", err)
+		return false
 	}
 
 	if _, hasCommand := conf.Permissions[command]; !hasCommand {
@@ -29,10 +28,7 @@ func IsAllowed(ctx context.Context, s *discordgo.Session, authorID string, comma
 
 		roleInfo, err := state.Role(conf.GuildID, role)
 		if err != nil {
-			if loggerOk {
-				l.Infof("Failed to retrieve role information: \n GuildID: %q \n Role: %q \n err: %q", conf.GuildID, role, err)
-			}
-
+			glog.Errorf("Failed to retrieve role information: GuildID: %q Role: %q err: %q", conf.GuildID, role, err)
 			isAllowed = false
 			break
 		}
