@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"flag"
 	"fmt"
 	"net/http"
@@ -74,65 +73,8 @@ func main() {
 	}()
 
 	glog.Infof("Serving http server on %s", conf.BotHostName)
-	http.Handle("/help", handlerWithError(help))
-	http.Handle("/alert", handlerWithError(alertHandler))
-	if err := http.ListenAndServe(conf.BotHostName, nil); err != nil {
-		glog.Fatalf("Failed to serve HTTP: %s", err)
-	}
-}
-
-// help sends a help message to the help discord channel
-func help(w http.ResponseWriter, r *http.Request) error {
-	defer r.Body.Close()
-
-	var resp struct {
-		User    string `json:"user"`
-		Email   string `json:"email"`
-		Subject string `json:"subject"`
-		Message string `json:"message"`
-	}
-	if err := json.NewDecoder(r.Body).Decode(&resp); err != nil {
-		err = fmt.Errorf("Failed to unmarshal request JSON: %s", err)
-		if _, dgErr := dg.ChannelMessageSend(conf.HelpChannelID, fmt.Sprintf("help request error: %s", err)); dgErr != nil {
-			return fmt.Errorf("failed to send failure notice to discord (%s): %s", err, dgErr)
-		}
-		return err
-	}
-
-	msg := fmt.Sprintf("%s Help pls\n\n```From: %s\nEmail: %s\n\nSubject: %s\n\n%s```", conf.SysAdminTag, resp.User, resp.Email, resp.Subject, resp.Message)
-	if _, err := dg.ChannelMessageSend(conf.HelpChannelID, msg); err != nil {
-		return fmt.Errorf("Failed to send help request to discord: %s", err)
-	}
-	return nil
-}
-
-// alertHandler relays a prometheus alert to the alerting channel
-func alertHandler(w http.ResponseWriter, r *http.Request) error {
-	defer r.Body.Close()
-
-	var resp struct {
-		Status string `json:"status"`
-		Alerts []struct {
-			Annotations map[string]string `json:"annotations"`
-		} `json:"alerts"`
-	}
-
-	if err := json.NewDecoder(r.Body).Decode(&resp); err != nil {
-		err = fmt.Errorf("Failed to unmarshal request JSON: %s", err)
-		if _, dgErr := dg.ChannelMessageSend(conf.AlertsChannelID, fmt.Sprintf("alerts request error: %s", err)); dgErr != nil {
-			return fmt.Errorf("failed to send failure notice to discord (%s): %s", err, dgErr)
-		}
-		return err
-	}
-
-	msg := fmt.Sprintf("%s Alerts are %s:", conf.SysAdminTag, resp.Status)
-	for _, a := range resp.Alerts {
-		msg += fmt.Sprintf("\n - %s", a.Annotations["summary"])
-	}
-	if _, err := dg.ChannelMessageSend(conf.AlertsChannelID, msg); err != nil {
-		return fmt.Errorf("failed to send alert to discord: %s", err)
-	}
-	return nil
+	close := make(chan struct{})
+	<- close
 }
 
 // messageCreate is an event handler which is called whenever a new message
