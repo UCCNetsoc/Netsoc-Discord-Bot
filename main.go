@@ -74,7 +74,7 @@ func main() {
 
 	glog.Infof("Serving http server on %s", conf.BotHostName)
 	close := make(chan struct{})
-	<- close
+	<-close
 }
 
 // messageCreate is an event handler which is called whenever a new message
