@@ -40,13 +40,14 @@ func main() {
 	flag.Parse()
 	defer glog.Flush()
 
-	if err := config.LoadConfig(); err != nil {
+	var err error
+	if err = config.LoadConfig(); err != nil {
 		glog.Fatalf("Failed to load configuration JSON: %s", err)
 	}
 	conf = config.GetConfig()
 
 	glog.Infof("Starting bot..")
-	dg, err := discordgo.New("Bot " + conf.Token)
+	dg, err = discordgo.New("Bot " + conf.Token)
 	if err != nil {
 		glog.Fatalf("Failed to create Discord session: %s", err)
 	}
