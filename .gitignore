@@ -1,6 +1,5 @@
-*config.json
-*.log
-main
-build.sh
-.idea
-aliases.json
+# Ignore Gradle project-specific cache directory
+.gradle
+
+# Ignore Gradle build output directory
+build
