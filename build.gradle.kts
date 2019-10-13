@@ -40,5 +40,5 @@ dependencies {
 
 application {
     // Define the main class for the application
-    mainClassName = "Netsoc.Discord.Bot.AppKt"
+    mainClassName = "co.netsoc.netsocbot.AppKt"
 }
