@@ -36,6 +36,7 @@ dependencies {
     implementation("com.jessecorbett:diskord-jvm:1.5.1")
     implementation("org.slf4j:slf4j-api:1.7.26")
     implementation("org.slf4j:slf4j-simple:1.7.26")
+    implementation("com.sendgrid:sendgrid-java:4.4.1")
 }
 
 application {

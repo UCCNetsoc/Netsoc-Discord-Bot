@@ -1,17 +1,25 @@
 package co.netsoc.netsocbot.commands
 
+import co.netsoc.netsocbot.*
+import co.netsoc.netsocbot.utils.*
 import com.jessecorbett.diskord.api.model.Message
+import java.net.*
 
-const val minecraftAPIURL = "http://minecraft.netsoc.co/standalone/dynmap_NetsocCraft.json"
-
-val help: (message: Message) -> String = {
+fun help(message: Message): String {
     var out = "```"
     for (command in helpStrings.keys) {
-        out += "${command}: ${helpStrings[command]}\n"
+        out += "${PREFIX}${command}: ${helpStrings[command]}\n"
     }
-    out + "```"
+    return out + "```"
 }
 
-val ping: (message: Message) -> String = {
-    "pong!"
+fun ping(message: Message): String {
+    return "pong!"
+}
+
+suspend fun register(message: Message): Unit {
+    println("Hello")
+    val author = message.author
+    messageUser(author, "Please message me your UCC email address so I can verify you as a member of UCC")
+    println("sent")
 }
