@@ -10,16 +10,22 @@ import co.netsoc.netsocbot.utils.isDM
 
 val BOT_TOKEN: String = System.getenv("NETSOCBOT_TOKEN")
 val PREFIX = System.getenv("NETSOCBOT_PREFIX") ?: "!"
+val ROLEIDS = (System.getenv("NETSOCBOT_ROLEIDS") ?: "").split(",")
 
-@ExperimentalUnsignedTypes
-suspend fun main() {
-    val environmentVariables = arrayOf("NETSOCBOT_TOKEN", "NETSOCBOT_SERVERID", "NETSOCBOT_ROLEID", "NETSOCBOT_SENDGRID_TOKEN")
+suspend fun setup() {
+    val environmentVariables = arrayOf("NETSOCBOT_TOKEN", "NETSOCBOT_ROLEIDS", "NETSOCBOT_SENDGRID_TOKEN")
     for (variable in environmentVariables) {
         if (System.getenv(variable) == null) {
             println("$variable not set\nExiting")
             exitProcess(1)
         }
     }
+
+}
+
+@ExperimentalUnsignedTypes
+suspend fun main() {
+    setup()
     val commands = init()
     bot(BOT_TOKEN) {
         commands(PREFIX) {

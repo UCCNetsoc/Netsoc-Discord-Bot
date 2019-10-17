@@ -18,8 +18,13 @@ fun ping(message: Message): String {
 }
 
 suspend fun register(message: Message): Unit {
-    println("Hello")
     val author = message.author
-    messageUser(author, "Please message me your UCC email address so I can verify you as a member of UCC")
-    println("sent")
+    if (message.guildId != null) {
+        if (guilds.containsKey(author.id)) {
+            guilds[author.id] += "," + message.guildId!!
+        } else {
+            guilds[author.id] = message.guildId!!
+        }
+        messageUser(author, "Please message me your UCC email address so I can verify you as a member of UCC")
+    }
 }
