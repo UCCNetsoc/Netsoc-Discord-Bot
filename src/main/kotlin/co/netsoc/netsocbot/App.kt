@@ -1,6 +1,6 @@
 package co.netsoc.netsocbot
 import com.jessecorbett.diskord.dsl.*
-import com.jessecorbett.diskord.api.exception.DiscordBadPermissionsException
+import com.jessecorbett.diskord.api.exception.*
 import kotlin.system.exitProcess
 import co.netsoc.netsocbot.commands.init
 import co.netsoc.netsocbot.commands.specialCommands
@@ -27,32 +27,37 @@ suspend fun setup() {
 suspend fun main() {
     setup()
     val commands = init()
-    bot(BOT_TOKEN) {
-        commands(PREFIX) {
-            for (commandString in commands.keys) {
-                command(commandString) {
-                    val response = commands[commandString]!!.invoke(this)
-                    if(response != null) {
-                        try{
-                            replyAndDelete(response)
-                        } catch (e: DiscordBadPermissionsException) {
-                            reply(response)
+    try {
+        bot(BOT_TOKEN) {
+            commands(PREFIX) {
+                for (commandString in commands.keys) {
+                    command(commandString) {
+                        val response = commands[commandString]!!.invoke(this)
+                        if(response != null) {
+                            try{
+                                replyAndDelete(response)
+                            } catch (e: DiscordBadPermissionsException) {
+                                reply(response)
+                            }
+                        }
+                    }
+                }
+            }
+            messageCreated{
+                if(it.isFromUser) {
+                    if(isDM(it)) {
+                        registerDMs(it, this.clientStore)
+                    } else {
+                        val function = specialCommands[it.words[0]]
+                        if (function != null) {
+                            function.invoke(it)
                         }
                     }
                 }
             }
         }
-        messageCreated{
-            if(it.isFromUser) {
-                if(isDM(it)) {
-                    registerDMs(it, this.clientStore)
-                } else {
-                    val function = specialCommands[it.words[0]]
-                    if (function != null) {
-                        function.invoke(it)
-                    }
-                }
-            }
-        }
+    } catch (e: DiscordUnauthorizedException) {
+        println(e)
+        exitProcess(1)
     }
 }
