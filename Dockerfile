@@ -1,14 +1,10 @@
-FROM golang:1.10-alpine
-
-WORKDIR /go/src/github.com/UCCNetworkingSociety/Netsoc-Discord-Bot
+FROM gradle:5.6.2-jdk8 AS build
+WORKDIR /
 COPY . .
+RUN gradle fatJar
 
-RUN apk update && \
-    apk add --no-cache git && \
-    git remote set-url origin https://github.com/UCCNetworkingSociety/Netsoc-Discord-Bot
+FROM openjdk:8-jre-alpine AS run
+WORKDIR /
+COPY --from=build /build/libs/Netsoc-Discord-Bot-fat.jar .
 
-RUN mkdir /logs
-RUN go get -d -v ./...
-RUN go install -v ./...
-
-CMD ["Netsoc-Discord-Bot", "-log_dir", "/logs", "-alsologtostderr"]
+CMD ["java", "-jar", "/Netsoc-Discord-Bot-fat.jar"]
