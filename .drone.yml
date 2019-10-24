@@ -1,36 +1,62 @@
-workspace:
-  base: /go
-  path: src/github.com/UCCNetworkingSociety/Netsoc-Discord-Bot
+kind: pipeline
+name: default
 
-pipeline:
-  unit_tests:
-    image: golang:latest
-    commands:
-      - bash -c "if [[ \$(gofmt -l *.go) ]]; then gofmt -l *.go; exit 1; fi"
-      - go get -t ./...
-      - go test ./...
-
-  build_push_latest:
-    group: build_group
-    image: plugins/docker
-    tags: latest
-    dockerfile: Dockerfile
-    repo: docker.netsoc.co/netsoc-discord-bot
+steps:
+- name: build_dev
+  image: plugins/docker
+  settings:
+    tag: latest
+    repo: docker.netsoc.co/public/netsocbot
     registry: docker.netsoc.co
-    secrets: [ docker_username, docker_password ]
-    when:
-      branch: master
-      event:
-        exclude: [ pull_request ]
+    username:
+      from_secret: docker_dev_username
+    password:
+      from_secret: docker_dev_auth
+  volumes:
+  - name: cache
+    path: /var/lib/docker  
+  when:
+    event: 
+      - push
+    branch: 
+      - master  
 
-  build_push_other:
-    group: build_group
-    image: plugins/docker
-    tags: ${DRONE_COMMIT_BRANCH}
-    dockerfile: Dockerfile
-    repo: docker.netsoc.co/netsoc-discord-bot
-    registry: docker.netsoc.co
-    secrets: [ docker_username, docker_password ]
-    when:
-      branch:
-        exclude: [ master ]
+- name: discord_notif_success
+  image: appleboy/drone-discord
+  environment:
+    WEBHOOK_ID:
+      from_secret: discord_webhook_id
+    WEBHOOK_TOKEN:
+      from_secret: discord_webhook_token
+  settings:
+    username: Netsoc CI
+    avatar_url: https://raw.githubusercontent.com/drone/brand/3051b0d85318a2a20b62927ba19fc07e24c0d751/logos/png/white/drone-logo-png-white-256.png
+    color: "#42f483"
+    message: Netsoc Bot successfully built and pushed. Build num {{build.number}}. {{build.link}}
+  when:
+    event: 
+      - push
+    branch: 
+      - master 
+    status:
+      - success
+
+- name: discord_notif_failure
+  image: appleboy/drone-discord
+  environment:
+    WEBHOOK_ID:
+      from_secret: discord_webhook_id
+    WEBHOOK_TOKEN:
+      from_secret: discord_webhook_token
+  settings:
+    username: Netsoc CI
+    avatar_url: https://raw.githubusercontent.com/drone/brand/3051b0d85318a2a20b62927ba19fc07e24c0d751/logos/png/white/drone-logo-png-white-256.png
+    color: "#e04414"
+    message: Netsoc Bot failed for {{build.author}}. Build num {{build.number}}. {{build.link}}
+  when:
+    event: 
+      - push
+    branch: 
+      - master 
+    status:
+      - failure  
