@@ -7,6 +7,7 @@ import co.netsoc.netsocbot.commands.specialCommands
 import co.netsoc.netsocbot.commands.registerDMs
 import com.jessecorbett.diskord.util.*
 import co.netsoc.netsocbot.utils.isDM
+import java.net.UnknownHostException
 
 val BOT_TOKEN: String = System.getenv("NETSOCBOT_TOKEN")
 val PREFIX = System.getenv("NETSOCBOT_PREFIX") ?: "!"
@@ -57,6 +58,9 @@ suspend fun main() {
             }
         }
     } catch (e: DiscordUnauthorizedException) {
+        println(e)
+        exitProcess(1)
+    } catch (e: UnknownHostException) {
         println(e)
         exitProcess(1)
     }
