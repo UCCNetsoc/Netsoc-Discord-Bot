@@ -8,5 +8,5 @@ val specialCommands = HashMap<String, suspend (Message) -> Unit>()
 internal fun specialRegister(command: String, helpString: String, action: suspend (Message)->Unit) {
     val prefixedCommand = "$PREFIX" + command
     specialCommands[prefixedCommand] = action
-    helpStrings[prefixedCommand] = helpString
+    helpStrings[command] = helpString
 }
