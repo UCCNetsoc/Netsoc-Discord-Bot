@@ -19,12 +19,13 @@ fun ping(message: Message): String {
 
 suspend fun register(message: Message): Unit {
     val author = message.author
-    if (message.guildId != null) {
-        if (guilds.containsKey(author.id)) {
-            guilds[author.id] += "," + message.guildId!!
-        } else {
-            guilds[author.id] = message.guildId!!
-        }
-        messageUser(author, "Please message me your UCC email address so I can verify you as a member of UCC")
+    if (message.guildId == null) {
+        return
     }
+    if (guilds.containsKey(author.id)) {
+        guilds[author.id] += "," + message.guildId!!
+    } else {
+        guilds[author.id] = message.guildId!!
+    }
+    messageUser(author, "Please message me your UCC email address so I can verify you as a member of UCC")
 }
