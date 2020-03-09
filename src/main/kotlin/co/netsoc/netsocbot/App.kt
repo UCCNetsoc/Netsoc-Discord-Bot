@@ -18,7 +18,7 @@ suspend fun setup() {
     val environmentVariables = arrayOf("NETSOCBOT_TOKEN", "NETSOCBOT_ROLEIDS", "NETSOCBOT_SENDGRID_TOKEN")
     for (variable in environmentVariables) {
         if (System.getenv(variable) != null) {
-            return
+            continue
         }
         println("$variable not set\nExiting")
         exitProcess(1)
