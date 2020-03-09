@@ -13,7 +13,7 @@ val hashes = HashMap<String, String>()
 @ExperimentalUnsignedTypes
 suspend fun registerDMs(message: Message, clientStore: ClientStore) {
     val word = message.words[0]
-    if (guilds[message.authorId] != null) {
+    if (guilds[message.authorId] == null) {
         return
     }
 
