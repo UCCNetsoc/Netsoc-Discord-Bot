@@ -17,10 +17,11 @@ val ROLEIDS = (System.getenv("NETSOCBOT_ROLEIDS") ?: "").split(",")
 suspend fun setup() {
     val environmentVariables = arrayOf("NETSOCBOT_TOKEN", "NETSOCBOT_ROLEIDS", "NETSOCBOT_SENDGRID_TOKEN")
     for (variable in environmentVariables) {
-        if (System.getenv(variable) == null) {
-            println("$variable not set\nExiting")
-            exitProcess(1)
+        if (System.getenv(variable) != null) {
+            return
         }
+        println("$variable not set\nExiting")
+        exitProcess(1)
     }
 
 }
@@ -35,26 +36,28 @@ suspend fun main() {
                 for (commandString in commands.keys) {
                     command(commandString) {
                         val response = commands[commandString]!!.invoke(this)
-                        if(response != null) {
-                            try{
-                                replyAndDelete(response)
-                            } catch (e: DiscordBadPermissionsException) {
-                                reply(response)
-                            }
+                        if(response == null) {
+                            return@command
+                        }
+                        try {
+                            replyAndDelete(response)
+                        } catch (e: DiscordBadPermissionsException) {
+                            reply(response)
                         }
                     }
                 }
             }
-            messageCreated{
-                if(it.isFromUser) {
-                    if(isDM(it)) {
-                        registerDMs(it, this.clientStore)
-                    } else {
-                        val function = specialCommands[it.words[0]]
-                        if (function != null) {
-                            function.invoke(it)
-                        }
-                    }
+            messageCreated {
+                if(!it.isFromUser) {
+                    return@messageCreated
+                }
+                if(isDM(it)) {
+                    registerDMs(it, this.clientStore)
+                    return@messageCreated
+                }
+                val function = specialCommands[it.words[0]]
+                if (function != null) {
+                    function.invoke(it)
                 }
             }
         }
