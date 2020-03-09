@@ -1,4 +1,5 @@
 package co.netsoc.netsocbot
+
 import com.jessecorbett.diskord.dsl.*
 import com.jessecorbett.diskord.api.exception.*
 import kotlin.system.exitProcess
