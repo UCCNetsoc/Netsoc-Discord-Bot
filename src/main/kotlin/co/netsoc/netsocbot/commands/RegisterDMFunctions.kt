@@ -41,12 +41,17 @@ suspend fun registerDMs(message: Message, clientStore: ClientStore) {
         return
     }
 
+    var success = false
     for (guildid in guilds[message.authorId]!!.split(",")) {
         for (roleid in ROLEIDS) {
             try {
                 clientStore.guilds[guildid].addMemberRole(message.authorId, roleid)
             } catch(e: DiscordException) {}
         }
+    }
+    if (!success) {
+        clientStore.channels[message.channelId].sendMessage("Failed to register for the server. Please contact the owners of the server")
+        return
     }
     clientStore.channels[message.channelId].sendMessage("Thank you. You have been registered for the Netsoc Discord Server")
     hashes.remove(message.authorId)
