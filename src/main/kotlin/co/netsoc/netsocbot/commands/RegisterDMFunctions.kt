@@ -46,6 +46,7 @@ suspend fun registerDMs(message: Message, clientStore: ClientStore) {
         for (roleid in ROLEIDS) {
             try {
                 clientStore.guilds[guildid].addMemberRole(message.authorId, roleid)
+                success = true
             } catch(e: DiscordException) {}
         }
     }
