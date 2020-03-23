@@ -23,7 +23,6 @@ suspend fun setup() {
         println("$variable not set\nExiting")
         exitProcess(1)
     }
-
 }
 
 @ExperimentalUnsignedTypes

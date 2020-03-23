@@ -39,6 +39,7 @@ dependencies {
     implementation("org.slf4j:slf4j-api:1.7.26")
     implementation("org.slf4j:slf4j-simple:1.7.26")
     implementation("com.sendgrid:sendgrid-java:4.4.1")
+    implementation("ch.qos.logback:logback-classic:1.2.3")
 }
 
 val fatJar = task("fatJar", type = Jar::class) {

@@ -1,10 +1,15 @@
-FROM gradle:5.6.2-jdk8 AS build
-WORKDIR /
-COPY . .
-RUN gradle fatJar
+FROM gradle:6.2.2-jdk11 AS build
 
-FROM openjdk:8-jre-alpine AS run
 WORKDIR /
+
+COPY . .
+
+RUN gradle --no-daemon fatJar
+
+FROM openjdk:11-jre-slim AS run
+
+WORKDIR /
+
 COPY --from=build /build/libs/Netsoc-Discord-Bot-fat.jar .
 
-CMD ["java", "-jar", "/Netsoc-Discord-Bot-fat.jar"]
+CMD exec java -jar $JAVA_OPTIONS /Netsoc-Discord-Bot-fat.jar
